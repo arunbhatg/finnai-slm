@@ -134,6 +134,7 @@ python -m eval.run_eval \
 | [`docs/DATASET_CARD.md`](docs/DATASET_CARD.md) | Dataset card |
 | [`docs/llm-eval-protocol.md`](docs/llm-eval-protocol.md) | Pre-registered ship gates |
 | [`docs/finnai-slm-finetune.md`](docs/finnai-slm-finetune.md) | Lab notebook / ops |
+| [`docs/FinnAI_SLM_CXO_FineTuning_Brief.docx`](docs/FinnAI_SLM_CXO_FineTuning_Brief.docx) | **CXO briefing** — flowcharts + plain English + full technical depth |
 
 ## Privacy
 
