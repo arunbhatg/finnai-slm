@@ -1,0 +1,14 @@
+numpy>=1.26
+scipy>=1.11
+regex>=2024.1.0
+boto3>=1.35.0
+
+# Training extras (install on the GPU box / SageMaker image)
+# torch
+# transformers>=4.51.0
+# datasets
+# peft
+# trl
+# bitsandbytes
+# accelerate
+# sentencepiece

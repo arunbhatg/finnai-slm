@@ -1,0 +1,8 @@
+transformers>=4.51.0,<5
+datasets>=3.0.0,<4
+peft>=0.14.0,<0.18
+trl>=0.14.0,<0.19
+bitsandbytes>=0.45.0
+accelerate>=1.2.0,<1.6
+sentencepiece
+pyyaml

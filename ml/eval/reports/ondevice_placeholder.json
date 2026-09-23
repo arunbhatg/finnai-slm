@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-09-20T03:08:19.107970+00:00",
+  "device": {
+    "marketing_name": "pending",
+    "soc": "",
+    "ram_gb": null,
+    "android": ""
+  },
+  "runtime": "litert-lm",
+  "model_file": "",
+  "n_sms": 100,
+  "n_chat": 20,
+  "ttft_ms_warm_median": null,
+  "decode_tok_s": null,
+  "peak_rss_mb": null,
+  "json_valid_pct": null,
+  "notes": "Run the same 100 SMS + 20 chat prompts as ml/eval/fixtures after the model loads once (warm)."
+}

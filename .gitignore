@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Data / model artifacts (rebuild or download from HF)
+ml/data/out/
+ml/train/output/
+ml/train/out/
+ml/release/hf_staging/
+*.safetensors
+*.bin
+*.pt
+*.litertlm
+*.gguf
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+.pytest_cache/
