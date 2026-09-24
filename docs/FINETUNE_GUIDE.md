@@ -54,21 +54,28 @@ An on-device LLM handles all of these as one model, running locally with zero cl
 
 ## 2. Why Fine-tune a Small Model?
 
-A general-purpose 1.7B model (Qwen3-1.7B) gets only **22% R-EM** on Indian bank SMS. After QLoRA fine-tuning on 16,000 synthetic examples, it jumps to **92.75%**. Here's why:
+A general-purpose 1.7B model (Qwen3-1.7B) gets only **~28% overall R-EM** on Indian bank SMS (v2 test). After QLoRA fine-tuning it jumps to **~98%**. The gap is not “it can’t read rupees”:
 
-| Model | SMS R-EM | Amount EM | Params | On-device? |
+| Slice (v2 test) | FinnAI v2 | Qwen3 untuned | Qwen2.5 untuned |
+|---|---:|---:|---:|
+| Txn-only Amount EM | 99.5% | **96.7%** | 96.1% |
+| Non-txn false-parse | 0.5% | **100%** | 48% |
+
+Untuned chat models **over-help**: they invent a spend on OTP/promo. Newer Qwen3 is *worse* at refusal than Qwen2.5. Fine-tuning teaches `{}` for junk and full-field JSON for real spends.
+
+| Model | Overall SMS R-EM | Amount EM (overall) | Params | On-device? |
 |---|---|---|---|---|
 | GPT-4o (cloud) | ~95%* | ~98%* | 200B+ | ❌ |
-| Qwen3-1.7B (base) | 22.13% | 79.27% | 1.7B | ✅ but bad |
-| Qwen2.5-1.5B (base) | 48.78% | 88.08% | 1.5B | ✅ but mediocre |
-| **FinnAI SLM v1** | **92.75%** | **94.60%** | 1.7B | ✅ |
+| Qwen3-1.7B (untuned) | 28.16% | 82.84% | 1.7B | ✅ but over-parses |
+| Qwen2.5-1.5B-Instruct (untuned) | 42.43% | 89.78% | 1.5B | ✅ but mediocre |
+| **FinnAI SLM v2** | **97.97%** | **99.53%** | 1.7B | ✅ |
 
 *Estimated, not formally evaluated.
 
 **Fine-tuning closes the gap** between a tiny on-device model and a cloud giant, for a narrow domain. The model learns:
 - Indian bank SMS format conventions (UPI, NEFT, IMPS, CC, salary)
 - Which fields go where in the JSON schema
-- What is NOT a transaction (OTP, promo, KYC → `{}`)
+- What is NOT a transaction (OTP, promo, KYC → `{}`) — **this is the product-critical skill**
 - Finance coaching grounded in a user's spending ledger
 
 ### Why QLoRA specifically?

@@ -21,6 +21,19 @@ FinnAI SLM is a QLoRA fine-tune of [`Qwen/Qwen3-1.7B`](https://huggingface.co/Qw
 | Chat groundedness % | **68.0** | 26.0 | 68.0 |
 | False-parse % | **0.54** | 100.0 | 47.83 |
 
+### Split view (why overall R-EM looks harsh on bases)
+
+Same test: **1,098 transactions** + **184 non-transactions**.
+
+| | FinnAI v2 | Qwen3-1.7B | Qwen2.5-1.5B |
+| --- | ---: | ---: | ---: |
+| **Txn-only** Amount EM % | **99.54** | **96.72** | 96.08 |
+| **Txn-only** Merchant % | **98.00** | 71.58 | 76.32 |
+| **Txn-only** R-EM % | **97.72** | 32.88 | 40.80 |
+| **Non-txn** false-parse % | **0.54** | **100.0** | 47.83 |
+
+Untuned models already extract amounts on real spends (~96%). They fail by **inventing spends on OTP/promo** (worse on Qwen3 than Qwen2.5). Fine-tuning fixes that refusal skill.
+
 Full report: [`docs/eval-v2-report.md`](docs/eval-v2-report.md)
 
 ## What's in this repo

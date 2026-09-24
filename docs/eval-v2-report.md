@@ -38,4 +38,15 @@
 - Adapter: epoch-3 merged (`finnai-slm-v2-ohio-20260921-164442`), val SMS R-EM 0.965 all epochs
 - Nova Pro Indic expansion (300 SMS + 150 chat) drove the chat groundedness jump
 - False-parse collapse from 28.57% → 0.54% is the biggest quality win
+- **Txn-only vs junk SMS** (1,098 transactions / 184 non-txn in the same test):
+
+| | FinnAI v2 | Qwen3-1.7B | Qwen2.5-1.5B |
+|---|---:|---:|---:|
+| Txn-only Amount EM % | **99.54** | **96.72** | 96.08 |
+| Txn-only Merchant % | **98.00** | 71.58 | 76.32 |
+| Txn-only R-EM % | **97.72** | 32.88 | 40.80 |
+| Non-txn false-parse % | **0.54** | **100.0** | 47.83 |
+
+  Bases already read amounts on real transactions. Qwen3’s headline R-EM looks terrible mainly because it **always invents a transaction on OTP/promo**. Fine-tuning teaches `{}` there — critical so junk SMS never become spends.
+- Qwen2.5 / Qwen3 columns are untuned Instruct/chat checkpoints; FinnAI is the fine-tune.
 - AWS jobs: train `finnai-slm-v2-ohio-20260921-164442`, eval `finnai-eval-v2-ohio-20260922-144643`

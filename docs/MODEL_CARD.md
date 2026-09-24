@@ -75,6 +75,34 @@ The model handles **English, Hindi, Hinglish, Tamil, Telugu, Marathi, and Bengal
 
 v1 → v2: R-EM +5.2 pp, chat groundedness +36 pp, false-parse 28.57% → 0.54%.
 
+### Transaction-only vs non-transaction (same 1,282-SMS test)
+
+Test mix: **1,098 real transactions** + **184 non-transactions** (OTP / promo / failed UPI / etc.).
+
+**A. Real transactions only** (non-empty gold) — bases look much healthier on amounts:
+
+| Metric (txn-only) | FinnAI v2 | Qwen3-1.7B | Qwen2.5-1.5B-Instruct |
+|---|---|---|---|
+| Strict R-EM % | **97.72** | 32.88 | 40.80 |
+| Amount EM % | **99.54** | **96.72** | 96.08 |
+| Merchant exact % | **98.00** | 71.58 | 76.32 |
+
+**B. Non-transactions only** — where untuned models fall apart:
+
+| Metric (non-txn) | FinnAI v2 | Qwen3-1.7B | Qwen2.5-1.5B-Instruct |
+|---|---|---|---|
+| False-parse % (invented a spend) | **0.54** | **100.0** | 47.83 |
+
+### Why fine-tuning matters here
+
+Newer chat models try to be helpful: if you ask for JSON, they **emit a transaction even when the SMS is not one**. That false-parse rate got **worse** from Qwen2.5 (~48%) to untuned Qwen3 (~100%). For an expense app that is dangerous — OTPs become fake spends.
+
+On real transactions, both untuned bases already read amounts well (~96%). Fine-tuning mainly buys:
+1. **Refusal** on junk SMS (`{}`)
+2. **Full-field** match (merchant / account / type together)
+
+Qwen2.5 and Qwen3 columns are **untuned** Instruct/chat checkpoints. FinnAI is the only fine-tuned row. Txn-only rows are derived from the published aggregates + the 1,098 / 184 split.
+
 ## How to use
 
 ```python
@@ -154,9 +182,10 @@ Pre-registered before looking at test scores: [`docs/llm-eval-protocol.md`](http
 
 - **Indian bank SMS only** — trained on Indian banking formats (UPI, NEFT, IMPS, etc.). May not generalize to US/EU bank SMS.
 - **Merchant extraction** is the hardest field; regex parsers in `parser-core` still win on supported banks.
-- **Chat groundedness** is moderate (~32%); the model sometimes paraphrases numbers instead of citing exact figures.
+- **Chat groundedness** is improved in v2 (~68%) but still not perfect; the model can paraphrase numbers.
 - **Thinking is disabled** — do not expect chain-of-thought reasoning.
 - **1.7B parameter model** — smaller than general-purpose assistants; optimized for the SMS+coach task mix.
+- **Untuned bases over-parse** — raw Qwen3 almost always invents a transaction on OTP/promo SMS; do not use the base model for this task without fine-tuning.
 
 ## On-device deployment
 
