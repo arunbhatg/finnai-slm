@@ -54,28 +54,29 @@ An on-device LLM handles all of these as one model, running locally with zero cl
 
 ## 2. Why Fine-tune a Small Model?
 
-A general-purpose 1.7B model (Qwen3-1.7B) gets only **~28% overall R-EM** on Indian bank SMS (v2 test). After QLoRA fine-tuning it jumps to **~98%**. The gap is not “it can’t read rupees”:
+A general-purpose 1.7B model (Qwen3-1.7B) looks weak on **overall** R-EM (~28% on the v2 test) mainly because of empty rows. Restrict to **non-empty transaction rows only** (1,098 SMS):
 
-| Slice (v2 test) | FinnAI v2 | Qwen3 untuned | Qwen2.5 untuned |
+| Metric (non-empty only) | FinnAI v2 | Qwen3 untuned | Qwen2.5 untuned |
 |---|---:|---:|---:|
-| Txn-only Amount EM | 99.5% | **96.7%** | 96.1% |
-| Non-txn false-parse | 0.5% | **100%** | 48% |
+| Amount EM | **99.5%** | **96.7%** | 96.1% |
+| Merchant exact | **98.0%** | 71.6% | 76.3% |
+| Strict R-EM | **97.7%** | 32.9% | 40.8% |
 
-Untuned chat models **over-help**: they invent a spend on OTP/promo. Newer Qwen3 is *worse* at refusal than Qwen2.5. Fine-tuning teaches `{}` for junk and full-field JSON for real spends.
+So bases already read amounts on real spends. Separately, on **empty** rows (OTP/promo), false-parse is FinnAI 0.5% / Qwen3 **100%** / Qwen2.5 48% — newer untuned models over-help and invent spends. Fine-tuning teaches `{}` there plus full-field JSON on non-empty rows.
 
-| Model | Overall SMS R-EM | Amount EM (overall) | Params | On-device? |
-|---|---|---|---|---|
-| GPT-4o (cloud) | ~95%* | ~98%* | 200B+ | ❌ |
-| Qwen3-1.7B (untuned) | 28.16% | 82.84% | 1.7B | ✅ but over-parses |
-| Qwen2.5-1.5B-Instruct (untuned) | 42.43% | 89.78% | 1.5B | ✅ but mediocre |
-| **FinnAI SLM v2** | **97.97%** | **99.53%** | 1.7B | ✅ |
+| Model | Overall SMS R-EM (full mix) | Params | On-device? |
+|---|---|---|---|
+| GPT-4o (cloud) | ~95%* | 200B+ | ❌ |
+| Qwen3-1.7B (untuned) | 28.16% | 1.7B | ✅ but over-parses empties |
+| Qwen2.5-1.5B-Instruct (untuned) | 42.43% | 1.5B | ✅ |
+| **FinnAI SLM v2** | **97.97%** | 1.7B | ✅ |
 
 *Estimated, not formally evaluated.
 
 **Fine-tuning closes the gap** between a tiny on-device model and a cloud giant, for a narrow domain. The model learns:
 - Indian bank SMS format conventions (UPI, NEFT, IMPS, CC, salary)
 - Which fields go where in the JSON schema
-- What is NOT a transaction (OTP, promo, KYC → `{}`) — **this is the product-critical skill**
+- What is NOT a transaction (OTP, promo, KYC → `{}`) — **product-critical**
 - Finance coaching grounded in a user's spending ledger
 
 ### Why QLoRA specifically?

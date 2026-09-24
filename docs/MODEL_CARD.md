@@ -60,48 +60,31 @@ FinnAI SLM is a [Qwen/Qwen3-1.7B](https://huggingface.co/Qwen/Qwen3-1.7B) deriva
 
 The model handles **English, Hindi, Hinglish, Tamil, Telugu, Marathi, and Bengali** bank SMS.
 
-## Key results (v2 held-out eval, 1,282 test SMS)
+## Key results (v2 held-out eval)
 
-| Metric | FinnAI v2 | Qwen3-1.7B base | Qwen2.5-1.5B-Instruct |
-|---|---|---|---|
-| SMS R-EM % | **97.97** [97.2, 98.7] | 28.16 | 42.43 |
-| Amount EM % | **99.53** | 82.84 | 89.78 |
-| JSON valid % | **100.0** | 100.0 | 99.45 |
-| Merchant exact % | **98.21** | 61.31 | 72.85 |
-| False-parse % | **0.54** | 100.0 | 47.83 |
-| Chat groundedness % | **68.0** | 26.0 | 68.0 |
+Test set: **1,098 non-empty transaction SMS** + 184 empty/non-transaction SMS (OTP, promo, failed UPI, …). Ship gates still use the full mix; the extraction comparison below is **non-empty rows only**.
 
-**SHIP: YES.** All gates pass. McNemar p = 7.6e-270.
+### Non-empty rows only (1,098 real transactions)
 
-v1 → v2: R-EM +5.2 pp, chat groundedness +36 pp, false-parse 28.57% → 0.54%.
-
-### Transaction-only vs non-transaction (same 1,282-SMS test)
-
-Test mix: **1,098 real transactions** + **184 non-transactions** (OTP / promo / failed UPI / etc.).
-
-**A. Real transactions only** (non-empty gold) — bases look much healthier on amounts:
-
-| Metric (txn-only) | FinnAI v2 | Qwen3-1.7B | Qwen2.5-1.5B-Instruct |
+| Metric | FinnAI v2 | Qwen3-1.7B (untuned) | Qwen2.5-1.5B-Instruct (untuned) |
 |---|---|---|---|
 | Strict R-EM % | **97.72** | 32.88 | 40.80 |
 | Amount EM % | **99.54** | **96.72** | 96.08 |
 | Merchant exact % | **98.00** | 71.58 | 76.32 |
 
-**B. Non-transactions only** — where untuned models fall apart:
+On real spends, untuned bases already read **amounts** well (~96%). FinnAI’s gain here is mostly **full-field** match (merchant / account / type together), not “learning what a rupee is.”
 
-| Metric (non-txn) | FinnAI v2 | Qwen3-1.7B | Qwen2.5-1.5B-Instruct |
+### Empty / non-transaction rows (184) — separate product check
+
+| Metric | FinnAI v2 | Qwen3-1.7B | Qwen2.5-1.5B-Instruct |
 |---|---|---|---|
-| False-parse % (invented a spend) | **0.54** | **100.0** | 47.83 |
+| False-parse % (invented a spend instead of `{}`) | **0.54** | **100.0** | 47.83 |
 
-### Why fine-tuning matters here
+Newer untuned chat models over-help: they emit JSON even when nothing is there. That got **worse** from Qwen2.5 → Qwen3. Fine-tuning teaches refusal. (Overall R-EM on all 1,282 rows mixes these two slices: FinnAI **97.97%**, Qwen3 **28.16%**, Qwen2.5 **42.43%**.)
 
-Newer chat models try to be helpful: if you ask for JSON, they **emit a transaction even when the SMS is not one**. That false-parse rate got **worse** from Qwen2.5 (~48%) to untuned Qwen3 (~100%). For an expense app that is dangerous — OTPs become fake spends.
+Chat groundedness (50-item set): FinnAI **68%**, Qwen3 **26%**, Qwen2.5 **68%**.
 
-On real transactions, both untuned bases already read amounts well (~96%). Fine-tuning mainly buys:
-1. **Refusal** on junk SMS (`{}`)
-2. **Full-field** match (merchant / account / type together)
-
-Qwen2.5 and Qwen3 columns are **untuned** Instruct/chat checkpoints. FinnAI is the only fine-tuned row. Txn-only rows are derived from the published aggregates + the 1,098 / 184 split.
+**SHIP: YES.** Gates 1–4 pass. McNemar p = 7.6e-270. Qwen2.5 / Qwen3 columns are untuned checkpoints; FinnAI is the only fine-tune. Non-empty metrics derived from published aggregates + the 1,098 / 184 split.
 
 ## How to use
 

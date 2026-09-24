@@ -14,25 +14,17 @@ FinnAI SLM is a QLoRA fine-tune of [`Qwen/Qwen3-1.7B`](https://huggingface.co/Qw
 
 ## Results (v2 held-out eval)
 
-| Metric | FinnAI v2 | Qwen3-1.7B base | Qwen2.5-1.5B |
-| --- | --- | --- | --- |
-| SMS R-EM % | **97.97** | 28.16 | 42.43 |
-| Amount EM % | **99.53** | 82.84 | 89.78 |
-| Chat groundedness % | **68.0** | 26.0 | 68.0 |
-| False-parse % | **0.54** | 100.0 | 47.83 |
+**Non-empty transaction rows only** (1,098 SMS with a real spend/credit):
 
-### Split view (why overall R-EM looks harsh on bases)
-
-Same test: **1,098 transactions** + **184 non-transactions**.
-
-| | FinnAI v2 | Qwen3-1.7B | Qwen2.5-1.5B |
+| Metric | FinnAI v2 | Qwen3-1.7B | Qwen2.5-1.5B |
 | --- | ---: | ---: | ---: |
-| **Txn-only** Amount EM % | **99.54** | **96.72** | 96.08 |
-| **Txn-only** Merchant % | **98.00** | 71.58 | 76.32 |
-| **Txn-only** R-EM % | **97.72** | 32.88 | 40.80 |
-| **Non-txn** false-parse % | **0.54** | **100.0** | 47.83 |
+| Amount EM % | **99.54** | **96.72** | 96.08 |
+| Merchant exact % | **98.00** | 71.58 | 76.32 |
+| Strict R-EM % | **97.72** | 32.88 | 40.80 |
 
-Untuned models already extract amounts on real spends (~96%). They fail by **inventing spends on OTP/promo** (worse on Qwen3 than Qwen2.5). Fine-tuning fixes that refusal skill.
+Bases already get the rupee amount right on real transactions. FinnAI wins on full-field match.
+
+**Empty rows separately** (184 OTP / promo / failed UPI): false-parse FinnAI **0.54%**, Qwen3 **100%**, Qwen2.5 **47.83%** — untuned models invent spends when nothing is there; fine-tuning fixes that.
 
 Full report: [`docs/eval-v2-report.md`](docs/eval-v2-report.md)
 
