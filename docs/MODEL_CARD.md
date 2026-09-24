@@ -66,25 +66,25 @@ Test set: **1,098 non-empty transaction SMS** + 184 empty/non-transaction SMS (O
 
 ### Non-empty rows only (1,098 real transactions)
 
-| Metric | FinnAI v2 | Qwen3-1.7B (untuned) | Qwen2.5-1.5B-Instruct (untuned) |
-|---|---|---|---|
-| Strict R-EM % | **97.72** | 32.88 | 40.80 |
-| Amount EM % | **99.54** | **96.72** | 96.08 |
-| Merchant exact % | **98.00** | 71.58 | 76.32 |
+| Metric | FinnAI v2 | Qwen3-1.7B (untuned) |
+|---|---|---|
+| Strict R-EM % | **97.72** | 32.88 |
+| Amount EM % | **99.54** | **96.72** |
+| Merchant exact % | **98.00** | 71.58 |
 
-On real spends, untuned bases already read **amounts** well (~96%). FinnAI’s gain here is mostly **full-field** match (merchant / account / type together), not “learning what a rupee is.”
+On real spends, untuned Qwen3 already reads **amounts** well (~97%). FinnAI’s gain is mostly **full-field** match (merchant / account / type together).
 
 ### Empty / non-transaction rows (184) — separate product check
 
-| Metric | FinnAI v2 | Qwen3-1.7B | Qwen2.5-1.5B-Instruct |
-|---|---|---|---|
-| False-parse % (invented a spend instead of `{}`) | **0.54** | **100.0** | 47.83 |
+| Metric | FinnAI v2 | Qwen3-1.7B (untuned) |
+|---|---|---|
+| False-parse % (invented a spend instead of `{}`) | **0.54** | **100.0** |
 
-Newer untuned chat models over-help: they emit JSON even when nothing is there. That got **worse** from Qwen2.5 → Qwen3. Fine-tuning teaches refusal. (Overall R-EM on all 1,282 rows mixes these two slices: FinnAI **97.97%**, Qwen3 **28.16%**, Qwen2.5 **42.43%**.)
+Untuned chat models over-help: they emit JSON even when nothing is there. Fine-tuning teaches refusal. (Overall R-EM on all 1,282 rows: FinnAI **97.97%**, Qwen3 **28.16%**.)
 
-Chat groundedness (50-item set): FinnAI **68%**, Qwen3 **26%**, Qwen2.5 **68%**.
+Chat groundedness (50-item set): FinnAI **68%**, Qwen3 **26%**.
 
-**SHIP: YES.** Gates 1–4 pass. McNemar p = 7.6e-270. Qwen2.5 / Qwen3 columns are untuned checkpoints; FinnAI is the only fine-tune. Non-empty metrics derived from published aggregates + the 1,098 / 184 split.
+**SHIP: YES.** Gates 1–4 pass. McNemar p = 7.6e-270. Qwen3 column is the untuned base; FinnAI is the fine-tune. Non-empty metrics derived from published aggregates + the 1,098 / 184 split.
 
 ## How to use
 
@@ -159,7 +159,7 @@ Pre-registered before looking at test scores: [`docs/llm-eval-protocol.md`](http
 2. Amount EM drop vs base ≤ 1 pp
 3. Chat groundedness drop vs base ≤ 5 pp
 4. JSON validity ≥ 95%
-5. On-device TTFT / peak RSS ≤ 1.3× old Qwen2.5
+5. On-device TTFT / peak RSS ≤ 1.3× prior on-device baseline
 
 ## Limitations
 

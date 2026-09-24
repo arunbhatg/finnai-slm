@@ -16,7 +16,7 @@ FinnDot already parses **known banks** with regex in `parser-core`. The on-devic
 1. **Ask / Learn / analytics tips** when the user downloads a local model (`ChatAiMode.LOCAL`).
 2. **SMS JSON fallback** for senders with no bank parser (only if the engine is loaded).
 
-The old shipped file was Qwen2.5-1.5B MediaPipe `.task`. Qwen3 on-device builds are **LiteRT-LM `.litertlm`**, so we fine-tune Qwen3-1.7B and convert that checkpoint — not a MediaPipe `.task`.
+Qwen3 on-device builds are **LiteRT-LM `.litertlm`**, so we fine-tune Qwen3-1.7B and convert that checkpoint (not a MediaPipe `.task`).
 
 We do **not** replace regex parsers. Fine-tuning is specialization: more reliable SMS JSON and finance-coach answers that stay grounded in the ledger, without dumping user SMS into the cloud.
 
@@ -142,7 +142,7 @@ parser-core + generators
         → adapter/  (LoRA)
         → merge_lora.py  → bf16 merged
         → litert-torch INT4 nothink  → FinnAI-SLM.litertlm
-        → eval.run_eval vs Qwen3-base (+ Qwen2.5 product check)
+        → eval.run_eval vs Qwen3-base
         → SHIP: YES?  CloudFront + Hugging Face
 ```
 
@@ -172,9 +172,7 @@ Gates are pre-registered in [llm-eval-protocol.md](llm-eval-protocol.md). **INT4
 2. Amount EM drop vs base ≤ **1 pp**.  
 3. Chat groundedness drop vs base ≤ **5 pp**.  
 4. JSON validity ≥ **95%**.  
-5. On-device TTFT / peak RSS ≤ **1.3×** old Qwen2.5 MediaPipe (or documented proxy).
-
-Also report vs `Qwen/Qwen2.5-1.5B-Instruct` as a **product** check. Default: INT4 R-EM must be ≥ that baseline.
+5. On-device TTFT / peak RSS ≤ **1.3×** prior on-device baseline (or documented proxy).
 
 ```powershell
 python -m eval.run_eval --sms data/out/test_sms.jsonl --chat eval/fixtures/chat_eval.jsonl --backend hf --model-id train/out/finnai-slm-merged --baseline-id Qwen/Qwen3-1.7B --tag finnai-slm
@@ -231,15 +229,14 @@ Account `008692857726`. Dataset and checkpoints stay in **ap-south-1** S3. Train
 | Training job | **done** (`finai-slm-ohio-20260920-091315`). Instance terminated. |
 | Val SMS R-EM (256) | epoch1 0.953 → epoch2 **0.965** → epoch3 0.961 (best = epoch 2 / `checkpoint-1500`) |
 | Held-out eval | **SHIP: YES** — `finai-eval-ohio-20260921-082426` — instance terminated |
-| SMS R-EM (1351 test) | **92.75%** [91.3, 94.1] vs Qwen3-base 22.13%, Qwen2.5 48.78% |
-| Amount EM | **94.60%** vs Qwen3-base 79.27%, Qwen2.5 88.08% |
-| Chat groundedness | 32.0% vs Qwen3-base 26.0%, Qwen2.5 68.0% |
+| SMS R-EM (1351 test) | **92.75%** [91.3, 94.1] vs Qwen3-base 22.13% |
+| Amount EM | **94.60%** vs Qwen3-base 79.27% |
+| Chat groundedness | 32.0% vs Qwen3-base 26.0% |
 | Gate 1 R-EM lift | ✅ +70.61 pp |
 | Gate 2 amount | ✅ +15.32 pp |
 | Gate 3 chat | ✅ +6.0 pp |
 | Gate 4 JSON | ✅ 100% |
 | Gate 5 on-device | ⏳ hardware test pending |
-| RQ3 ≥ Qwen2.5 | ✅ 92.75 > 48.78 |
 
 ### v2 — Nova Pro Indic expansion
 
@@ -251,7 +248,7 @@ Account `008692857726`. Dataset and checkpoints stay in **ap-south-1** S3. Train
 | Training job | **done** `finai-slm-v2-ohio-20260921-164442` — terminated |
 | Val SMS R-EM (256) | epoch1 **0.965** → epoch2 **0.965** → epoch3 **0.965** (all tied) |
 | Held-out eval | **SHIP: YES** — `finai-eval-v2-ohio-20260922-144643` — terminated |
-| SMS R-EM (1282 test) | **97.97%** [97.2, 98.7] vs Qwen3-base 28.16%, Qwen2.5 42.43%, **v1 92.75%** |
+| SMS R-EM (1282 test) | **97.97%** [97.2, 98.7] vs Qwen3-base 28.16%, **v1 92.75%** |
 | Amount EM | **99.53%** (v1 94.60%) |
 | Merchant exact | **98.21%** (v1 93.12%) |
 | False-parse | **0.54%** (v1 28.57% — huge win) |

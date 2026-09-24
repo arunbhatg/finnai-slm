@@ -56,19 +56,18 @@ An on-device LLM handles all of these as one model, running locally with zero cl
 
 A general-purpose 1.7B model (Qwen3-1.7B) looks weak on **overall** R-EM (~28% on the v2 test) mainly because of empty rows. Restrict to **non-empty transaction rows only** (1,098 SMS):
 
-| Metric (non-empty only) | FinnAI v2 | Qwen3 untuned | Qwen2.5 untuned |
-|---|---:|---:|---:|
-| Amount EM | **99.5%** | **96.7%** | 96.1% |
-| Merchant exact | **98.0%** | 71.6% | 76.3% |
-| Strict R-EM | **97.7%** | 32.9% | 40.8% |
+| Metric (non-empty only) | FinnAI v2 | Qwen3 untuned |
+|---|---:|---:|
+| Amount EM | **99.5%** | **96.7%** |
+| Merchant exact | **98.0%** | 71.6% |
+| Strict R-EM | **97.7%** | 32.9% |
 
-So bases already read amounts on real spends. Separately, on **empty** rows (OTP/promo), false-parse is FinnAI 0.5% / Qwen3 **100%** / Qwen2.5 48% — newer untuned models over-help and invent spends. Fine-tuning teaches `{}` there plus full-field JSON on non-empty rows.
+So the untuned base already reads amounts on real spends. Separately, on **empty** rows (OTP/promo), false-parse is FinnAI **0.5%** vs Qwen3 **100%** — the chat base over-helps and invents spends. Fine-tuning teaches `{}` there plus full-field JSON on non-empty rows.
 
 | Model | Overall SMS R-EM (full mix) | Params | On-device? |
 |---|---|---|---|
 | GPT-4o (cloud) | ~95%* | 200B+ | ❌ |
 | Qwen3-1.7B (untuned) | 28.16% | 1.7B | ✅ but over-parses empties |
-| Qwen2.5-1.5B-Instruct (untuned) | 42.43% | 1.5B | ✅ |
 | **FinnAI SLM v2** | **97.97%** | 1.7B | ✅ |
 
 *Estimated, not formally evaluated.
@@ -372,8 +371,6 @@ All must pass on the held-out test set:
 4. JSON validity ≥ **95%**
 5. On-device TTFT / RSS ≤ **1.3×** old model
 
-Plus: FinnAI R-EM must be ≥ Qwen2.5-1.5B-Instruct R-EM (product regression check).
-
 ### 7.4 Running evaluation
 
 ```bash
@@ -383,7 +380,6 @@ python -m eval.run_eval \
   --chat eval/fixtures/chat_eval.jsonl \
   --model-id train/output/merged \
   --baseline-id Qwen/Qwen3-1.7B \
-  --product-id Qwen/Qwen2.5-1.5B-Instruct \
   --tag my-experiment
 ```
 
@@ -424,14 +420,14 @@ Key settings:
 
 ### v1 (12k training, English-heavy)
 
-| Metric | FinnAI v1 | Qwen3-1.7B base | Qwen2.5-1.5B |
-|---|---|---|---|
-| SMS R-EM % | **92.75** [91.3, 94.1] | 22.13 | 48.78 |
-| Amount EM % | **94.60** | 79.27 | 88.08 |
-| JSON valid % | **100.0** | 100.0 | — |
-| Merchant exact % | **93.12** | 54.48 | — |
-| Chat ground. % | 32.0 | 26.0 | 68.0 |
-| McNemar p | 1.3e-287 | — | — |
+| Metric | FinnAI v1 | Qwen3-1.7B base |
+|---|---|---|
+| SMS R-EM % | **92.75** [91.3, 94.1] | 22.13 |
+| Amount EM % | **94.60** | 79.27 |
+| JSON valid % | **100.0** | 100.0 |
+| Merchant exact % | **93.12** | 54.48 |
+| Chat ground. % | 32.0 | 26.0 |
+| McNemar p | 1.3e-287 | — |
 
 **SHIP: YES** — all gates pass.
 

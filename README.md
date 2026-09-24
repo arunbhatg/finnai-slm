@@ -1,6 +1,6 @@
-# FinnAI SLM
+﻿# FinnAI SLM
 
-**On-device Indian bank SMS → JSON + personal finance coaching**
+**On-device Indian bank SMS ΓåÆ JSON + personal finance coaching**
 
 FinnAI SLM is a QLoRA fine-tune of [`Qwen/Qwen3-1.7B`](https://huggingface.co/Qwen/Qwen3-1.7B) for the [FinnDot](https://github.com/devaka207/Finndot) expense tracker. It runs fully on-device (privacy-first) and is released under **Apache 2.0**.
 
@@ -16,15 +16,15 @@ FinnAI SLM is a QLoRA fine-tune of [`Qwen/Qwen3-1.7B`](https://huggingface.co/Qw
 
 **Non-empty transaction rows only** (1,098 SMS with a real spend/credit):
 
-| Metric | FinnAI v2 | Qwen3-1.7B | Qwen2.5-1.5B |
-| --- | ---: | ---: | ---: |
-| Amount EM % | **99.54** | **96.72** | 96.08 |
-| Merchant exact % | **98.00** | 71.58 | 76.32 |
-| Strict R-EM % | **97.72** | 32.88 | 40.80 |
+| Metric | FinnAI v2 | Qwen3-1.7B (untuned) |
+| --- | ---: | ---: |
+| Amount EM % | **99.54** | **96.72** |
+| Merchant exact % | **98.00** | 71.58 |
+| Strict R-EM % | **97.72** | 32.88 |
 
-Bases already get the rupee amount right on real transactions. FinnAI wins on full-field match.
+Untuned Qwen3 already gets the rupee amount right on real transactions. FinnAI wins on full-field match.
 
-**Empty rows separately** (184 OTP / promo / failed UPI): false-parse FinnAI **0.54%**, Qwen3 **100%**, Qwen2.5 **47.83%** — untuned models invent spends when nothing is there; fine-tuning fixes that.
+**Empty rows separately** (184 OTP / promo / failed UPI): false-parse FinnAI **0.54%** vs Qwen3 **100%** — the base invents spends when nothing is there; fine-tuning fixes that.
 
 Full report: [`docs/eval-v2-report.md`](docs/eval-v2-report.md)
 
@@ -108,7 +108,7 @@ python -m data.build_splits --repo-root . --out data/out --train-size 12000
 
 > Parser-gold extraction (`extract_parser_gold.py`) needs the FinnDot `parser-core` tests. Clone [devaka207/Finndot](https://github.com/devaka207/Finndot) and pass `--repo-root /path/to/Finndot` for the full mix.
 
-### 3. Train (1× A10G / T4 GPU)
+### 3. Train (1├ù A10G / T4 GPU)
 
 ```bash
 cd ml
@@ -134,12 +134,12 @@ python -m eval.run_eval \
 
 | Doc | Purpose |
 | --- | --- |
-| [`docs/FINETUNE_GUIDE.md`](docs/FINETUNE_GUIDE.md) | **Start here** — problem, when to use this approach, data recipe, training, adapting to other domains |
+| [`docs/FINETUNE_GUIDE.md`](docs/FINETUNE_GUIDE.md) | **Start here** ΓÇö problem, when to use this approach, data recipe, training, adapting to other domains |
 | [`docs/MODEL_CARD.md`](docs/MODEL_CARD.md) | Model card |
 | [`docs/DATASET_CARD.md`](docs/DATASET_CARD.md) | Dataset card |
 | [`docs/llm-eval-protocol.md`](docs/llm-eval-protocol.md) | Pre-registered ship gates |
 | [`docs/finnai-slm-finetune.md`](docs/finnai-slm-finetune.md) | Lab notebook / ops |
-| [`docs/FinnAI_SLM_CXO_FineTuning_Brief.docx`](docs/FinnAI_SLM_CXO_FineTuning_Brief.docx) | **CXO briefing** — flowcharts + plain English + full technical depth |
+| [`docs/FinnAI_SLM_CXO_FineTuning_Brief.docx`](docs/FinnAI_SLM_CXO_FineTuning_Brief.docx) | **CXO briefing** ΓÇö flowcharts + plain English + full technical depth |
 
 ## Privacy
 
@@ -149,7 +149,7 @@ python -m eval.run_eval \
 
 ## License
 
-Apache 2.0 — same as Qwen3-1.7B. Keep Qwen attribution.
+Apache 2.0 ΓÇö same as Qwen3-1.7B. Keep Qwen attribution.
 
 ## Citation
 

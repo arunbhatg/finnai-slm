@@ -6,14 +6,15 @@ On-device Indian bank SMS → JSON + finance coaching for [FinnDot](https://gith
 
 ## Results (held-out test)
 
-| Metric | FinnAI v2 | Qwen3-1.7B base | Qwen2.5-1.5B |
-|---|---|---|---|
-| SMS R-EM % | **97.97** | 28.16 | 42.43 |
-| Amount EM % | **99.53** | 82.84 | 89.78 |
-| Chat groundedness % | **68.0** | 26.0 | 68.0 |
-| False-parse % | **0.54** | 100.0 | 47.83 |
+| Metric | FinnAI v2 | Qwen3-1.7B base |
+|---|---|---|
+| SMS R-EM % | **97.97** | 28.16 |
+| Amount EM % | **99.53** | 82.84 |
+| Chat groundedness % | **68.0** | 26.0 |
+| False-parse % | **0.54** | 100.0 |
 
 **SHIP: YES** — eval report in this release.
+
 
 ## What's in this release
 

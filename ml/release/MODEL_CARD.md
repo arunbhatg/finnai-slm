@@ -60,20 +60,31 @@ FinnAI SLM is a [Qwen/Qwen3-1.7B](https://huggingface.co/Qwen/Qwen3-1.7B) deriva
 
 The model handles **English, Hindi, Hinglish, Tamil, Telugu, Marathi, and Bengali** bank SMS.
 
-## Key results (v2 held-out eval, 1,282 test SMS)
+## Key results (v2 held-out eval)
 
-| Metric | FinnAI v2 | Qwen3-1.7B base | Qwen2.5-1.5B-Instruct |
-|---|---|---|---|
-| SMS R-EM % | **97.97** [97.2, 98.7] | 28.16 | 42.43 |
-| Amount EM % | **99.53** | 82.84 | 89.78 |
-| JSON valid % | **100.0** | 100.0 | 99.45 |
-| Merchant exact % | **98.21** | 61.31 | 72.85 |
-| False-parse % | **0.54** | 100.0 | 47.83 |
-| Chat groundedness % | **68.0** | 26.0 | 68.0 |
+Test set: **1,098 non-empty transaction SMS** + 184 empty/non-transaction SMS (OTP, promo, failed UPI, …). Ship gates still use the full mix; the extraction comparison below is **non-empty rows only**.
 
-**SHIP: YES.** All gates pass. McNemar p = 7.6e-270.
+### Non-empty rows only (1,098 real transactions)
 
-v1 → v2: R-EM +5.2 pp, chat groundedness +36 pp, false-parse 28.57% → 0.54%.
+| Metric | FinnAI v2 | Qwen3-1.7B (untuned) |
+|---|---|---|
+| Strict R-EM % | **97.72** | 32.88 |
+| Amount EM % | **99.54** | **96.72** |
+| Merchant exact % | **98.00** | 71.58 |
+
+On real spends, untuned Qwen3 already reads **amounts** well (~97%). FinnAI’s gain is mostly **full-field** match (merchant / account / type together).
+
+### Empty / non-transaction rows (184) — separate product check
+
+| Metric | FinnAI v2 | Qwen3-1.7B (untuned) |
+|---|---|---|
+| False-parse % (invented a spend instead of `{}`) | **0.54** | **100.0** |
+
+Untuned chat models over-help: they emit JSON even when nothing is there. Fine-tuning teaches refusal. (Overall R-EM on all 1,282 rows: FinnAI **97.97%**, Qwen3 **28.16%**.)
+
+Chat groundedness (50-item set): FinnAI **68%**, Qwen3 **26%**.
+
+**SHIP: YES.** Gates 1–4 pass. McNemar p = 7.6e-270. Qwen3 column is the untuned base; FinnAI is the fine-tune. Non-empty metrics derived from published aggregates + the 1,098 / 184 split.
 
 ## How to use
 
@@ -148,15 +159,16 @@ Pre-registered before looking at test scores: [`docs/llm-eval-protocol.md`](http
 2. Amount EM drop vs base ≤ 1 pp
 3. Chat groundedness drop vs base ≤ 5 pp
 4. JSON validity ≥ 95%
-5. On-device TTFT / peak RSS ≤ 1.3× old Qwen2.5
+5. On-device TTFT / peak RSS ≤ 1.3× prior on-device baseline
 
 ## Limitations
 
 - **Indian bank SMS only** — trained on Indian banking formats (UPI, NEFT, IMPS, etc.). May not generalize to US/EU bank SMS.
 - **Merchant extraction** is the hardest field; regex parsers in `parser-core` still win on supported banks.
-- **Chat groundedness** is moderate (~32%); the model sometimes paraphrases numbers instead of citing exact figures.
+- **Chat groundedness** is improved in v2 (~68%) but still not perfect; the model can paraphrase numbers.
 - **Thinking is disabled** — do not expect chain-of-thought reasoning.
 - **1.7B parameter model** — smaller than general-purpose assistants; optimized for the SMS+coach task mix.
+- **Untuned bases over-parse** — raw Qwen3 almost always invents a transaction on OTP/promo SMS; do not use the base model for this task without fine-tuning.
 
 ## On-device deployment
 

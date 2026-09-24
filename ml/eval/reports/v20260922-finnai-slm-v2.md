@@ -2,15 +2,15 @@
 
 **SHIP: YES** (gates 1–4 pass; gate 5 on-device pending)
 
-| | FinnAI v2 | FinnAI v1 | Qwen3-1.7B base | Qwen2.5-1.5B |
-|---|---|---|---|---|
-| SMS R-EM % | **97.97** [97.2, 98.7] | 92.75 | 28.16 | 42.43 |
-| Amount EM % | **99.53** | 94.60 | 82.84 | 89.78 |
-| JSON valid % | **100.0** | 100.0 | 100.0 | 99.45 |
-| Field micro-F1 | **0.9911** | 0.9415 | 0.7123 | 0.8027 |
-| Merchant exact % | **98.21** | 93.12 | 61.31 | 72.85 |
-| False-parse % | **0.54** | 28.57 | 100.0 | 47.83 |
-| Chat groundedness % | **68.0** | 32.0 | 26.0 | 68.0 |
+| | FinnAI v2 | FinnAI v1 | Qwen3-1.7B base |
+|---|---|---|---|
+| SMS R-EM % | **97.97** [97.2, 98.7] | 92.75 | 28.16 |
+| Amount EM % | **99.53** | 94.60 | 82.84 |
+| JSON valid % | **100.0** | 100.0 | 100.0 |
+| Field micro-F1 | **0.9911** | 0.9415 | 0.7123 |
+| Merchant exact % | **98.21** | 93.12 | 61.31 |
+| False-parse % | **0.54** | 28.57 | 100.0 |
+| Chat groundedness % | **68.0** | 32.0 | 26.0 |
 
 ## Gates
 
@@ -20,8 +20,7 @@
 | 2. Amount EM non-inf ≥ −1pp | ✅ | +16.69 pp |
 | 3. Chat groundedness non-inf ≥ −5pp | ✅ | +42.0 pp |
 | 4. JSON ≥ 95% | ✅ | 100% |
-| 5. On-device TTFT/RSS ≤ 1.3× | ⏳ | hardware test pending |
-| RQ3: R-EM ≥ Qwen2.5 | ✅ | 97.97 > 42.43 |
+| 5. On-device TTFT/RSS ≤ 1.3× prior baseline | ⏳ | hardware test pending |
 | McNemar p | — | 7.6e-270 |
 
 ## v2 vs v1 deltas

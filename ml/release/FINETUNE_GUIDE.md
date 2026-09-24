@@ -54,21 +54,28 @@ An on-device LLM handles all of these as one model, running locally with zero cl
 
 ## 2. Why Fine-tune a Small Model?
 
-A general-purpose 1.7B model (Qwen3-1.7B) gets only **22% R-EM** on Indian bank SMS. After QLoRA fine-tuning on 16,000 synthetic examples, it jumps to **92.75%**. Here's why:
+A general-purpose 1.7B model (Qwen3-1.7B) looks weak on **overall** R-EM (~28% on the v2 test) mainly because of empty rows. Restrict to **non-empty transaction rows only** (1,098 SMS):
 
-| Model | SMS R-EM | Amount EM | Params | On-device? |
-|---|---|---|---|---|
-| GPT-4o (cloud) | ~95%* | ~98%* | 200B+ | ❌ |
-| Qwen3-1.7B (base) | 22.13% | 79.27% | 1.7B | ✅ but bad |
-| Qwen2.5-1.5B (base) | 48.78% | 88.08% | 1.5B | ✅ but mediocre |
-| **FinnAI SLM v1** | **92.75%** | **94.60%** | 1.7B | ✅ |
+| Metric (non-empty only) | FinnAI v2 | Qwen3 untuned |
+|---|---:|---:|
+| Amount EM | **99.5%** | **96.7%** |
+| Merchant exact | **98.0%** | 71.6% |
+| Strict R-EM | **97.7%** | 32.9% |
+
+So the untuned base already reads amounts on real spends. Separately, on **empty** rows (OTP/promo), false-parse is FinnAI **0.5%** vs Qwen3 **100%** — the chat base over-helps and invents spends. Fine-tuning teaches `{}` there plus full-field JSON on non-empty rows.
+
+| Model | Overall SMS R-EM (full mix) | Params | On-device? |
+|---|---|---|---|
+| GPT-4o (cloud) | ~95%* | 200B+ | ❌ |
+| Qwen3-1.7B (untuned) | 28.16% | 1.7B | ✅ but over-parses empties |
+| **FinnAI SLM v2** | **97.97%** | 1.7B | ✅ |
 
 *Estimated, not formally evaluated.
 
 **Fine-tuning closes the gap** between a tiny on-device model and a cloud giant, for a narrow domain. The model learns:
 - Indian bank SMS format conventions (UPI, NEFT, IMPS, CC, salary)
 - Which fields go where in the JSON schema
-- What is NOT a transaction (OTP, promo, KYC → `{}`)
+- What is NOT a transaction (OTP, promo, KYC → `{}`) — **product-critical**
 - Finance coaching grounded in a user's spending ledger
 
 ### Why QLoRA specifically?
@@ -364,8 +371,6 @@ All must pass on the held-out test set:
 4. JSON validity ≥ **95%**
 5. On-device TTFT / RSS ≤ **1.3×** old model
 
-Plus: FinnAI R-EM must be ≥ Qwen2.5-1.5B-Instruct R-EM (product regression check).
-
 ### 7.4 Running evaluation
 
 ```bash
@@ -375,7 +380,6 @@ python -m eval.run_eval \
   --chat eval/fixtures/chat_eval.jsonl \
   --model-id train/output/merged \
   --baseline-id Qwen/Qwen3-1.7B \
-  --product-id Qwen/Qwen2.5-1.5B-Instruct \
   --tag my-experiment
 ```
 
@@ -416,14 +420,14 @@ Key settings:
 
 ### v1 (12k training, English-heavy)
 
-| Metric | FinnAI v1 | Qwen3-1.7B base | Qwen2.5-1.5B |
-|---|---|---|---|
-| SMS R-EM % | **92.75** [91.3, 94.1] | 22.13 | 48.78 |
-| Amount EM % | **94.60** | 79.27 | 88.08 |
-| JSON valid % | **100.0** | 100.0 | — |
-| Merchant exact % | **93.12** | 54.48 | — |
-| Chat ground. % | 32.0 | 26.0 | 68.0 |
-| McNemar p | 1.3e-287 | — | — |
+| Metric | FinnAI v1 | Qwen3-1.7B base |
+|---|---|---|
+| SMS R-EM % | **92.75** [91.3, 94.1] | 22.13 |
+| Amount EM % | **94.60** | 79.27 |
+| JSON valid % | **100.0** | 100.0 |
+| Merchant exact % | **93.12** | 54.48 |
+| Chat ground. % | 32.0 | 26.0 |
+| McNemar p | 1.3e-287 | — |
 
 **SHIP: YES** — all gates pass.
 

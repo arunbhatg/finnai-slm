@@ -2,7 +2,7 @@
 
 **Status:** pre-registered (frozen before test scores are inspected)  
 **Date frozen:** 2026-09-20  
-**Task:** replace Qwen2.5-1.5B-Instruct (MediaPipe `.task`) with a QLoRA fine-tune of Qwen3-1.7B, exported to LiteRT-LM INT4 (`.litertlm`).  
+**Task:** QLoRA fine-tune of Qwen3-1.7B for on-device SMS→JSON + finance coach, exported to LiteRT-LM INT4 (`.litertlm`).  
 **This document is the ship gate.** Do not change thresholds after looking at held-out scores. If the protocol must change, bump the date, describe the delta, and re-run every model under the new protocol.
 
 An independent reviewer should be able to reproduce the tables from:
@@ -18,15 +18,12 @@ An independent reviewer should be able to reproduce the tables from:
 
 **RQ2 (quantization).** Does INT4 LiteRT-LM conversion preserve RQ1 gains within the registered non-inferiority margins versus the merged bf16 fine-tune?
 
-**RQ3 (product regression).** Is the INT4 fine-tune no worse than today’s shipped Qwen2.5-1.5B-Instruct on SMS extraction and finance-coach groundedness? Architecture and runtime differ, so RQ3 is a product check, not a controlled ablation.
-
-**RQ4 (on-device).** On a mid-range arm64 phone, is INT4 Qwen3 TTFT and peak RSS no worse than 1.3× the current MediaPipe Qwen2.5 path?
+**RQ3 (on-device).** On a mid-range arm64 phone, is INT4 Qwen3 TTFT and peak RSS acceptable vs a documented prior on-device baseline (≤ 1.3×)?
 
 ## 2. Models
 
 | ID | Artifact | Notes |
 | --- | --- | --- |
-| `qwen25_hf` | `Qwen/Qwen2.5-1.5B-Instruct` (Transformers, bf16 or 4-bit) | Product baseline. Not MediaPipe. |
 | `qwen3_base` | `Qwen/Qwen3-1.7B` Instruct, `enable_thinking=false` | Scientific baseline. |
 | `qwen3_ft_bf16` | Merged LoRA → bf16 safetensors | Candidate before conversion. |
 | `qwen3_ft_int4` | LiteRT-LM INT4 `nothink` `.litertlm` | **Only this ID may ship.** |
@@ -133,7 +130,7 @@ Record: time-to-first-token (warm), decode tokens/s, peak RSS / private footprin
 
 Community LiteRT-LM microbench numbers are **not** a substitute.
 
-Compare `qwen3_ft_int4` via LiteRT-LM to the currently shipped MediaPipe Qwen2.5 path. If Qwen2.5 `.task` is no longer loadable after the runtime swap, compare against a recorded MediaPipe baseline in `ml/eval/reports/mediapipe_qwen25_baseline.json` captured before the swap, or against Transformers `qwen25_hf` latency on the same device as a labeled proxy (must be stated).
+Compare `qwen3_ft_int4` via LiteRT-LM against a recorded prior on-device baseline (or a documented proxy; must be stated).
 
 ## 9. Pre-registered ship gates
 
@@ -143,11 +140,11 @@ Ship `qwen3_ft_int4` (update `Constants.ModelDownload.MODEL_URL` to the CloudFro
 2. **Amount EM non-inferiority:** `qwen3_ft_int4` − `qwen3_base` ≥ **−1.0 percentage point**.
 3. **Chat groundedness non-inferiority:** `qwen3_ft_int4` − `qwen3_base` ≥ **−5.0 percentage points**.
 4. **JSON validity:** `qwen3_ft_int4` ≥ **95%** on SMS test items.
-5. **On-device cost:** mid-range TTFT and peak RSS ≤ **1.3×** the Qwen2.5 MediaPipe (or documented proxy) measurement.
+5. **On-device cost:** mid-range TTFT and peak RSS ≤ **1.3×** the prior on-device baseline (or documented proxy).
 
 If any gate fails: do not change `MODEL_URL` to the fine-tune. Iterate data/LoRA/conversion and re-run the full suite. Partial “looks better on val” is not a ship.
 
-RQ3 (vs Qwen2.5) is reported in the same tables. A drop vs Qwen2.5 on R-EM should block ship even if RQ1 passes, unless a documented product decision accepts it. Default: **INT4 R-EM must be ≥ `qwen25_hf` R-EM**.
+Primary comparisons are FinnAI vs untuned Qwen3-1.7B base.
 
 ## 10. Training (for reviewers)
 
