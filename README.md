@@ -204,6 +204,7 @@ python -m eval.run_eval \
 | Doc | Purpose |
 | --- | --- |
 | [`docs/FINETUNE_GUIDE.md`](docs/FINETUNE_GUIDE.md) | **Start here** — problem, when to use this approach, data recipe, training, adapting to other domains |
+| [`docs/V3_PLAN.md`](docs/V3_PLAN.md) | **v3 plan** — India-focused data + eval gates (keep Qwen3-1.7B) |
 | [`docs/MODEL_CARD.md`](docs/MODEL_CARD.md) | Model card |
 | [`docs/DATASET_CARD.md`](docs/DATASET_CARD.md) | Dataset card |
 | [`docs/llm-eval-protocol.md`](docs/llm-eval-protocol.md) | Pre-registered ship gates |
