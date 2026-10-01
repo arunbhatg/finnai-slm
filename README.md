@@ -12,7 +12,7 @@ FinnAI SLM is a QLoRA fine-tune of [`Qwen/Qwen3-1.7B`](https://huggingface.co/Qw
 | **Weights for Python / research** (bf16 + LoRA) | Hugging Face | https://huggingface.co/finndot/finnai-slm-v2 |
 | **On-device Android model** (INT4 `.litertlm`, ~974 MB) | CloudFront | [Direct download](https://dgdzwh27431n8.cloudfront.net/models/qwen3-1.7b-finndot/latest/qwen3_1.7b_finndot_nothink_q4_ekv1280.litertlm) |
 | **Train/val/test dataset** | Hugging Face | https://huggingface.co/datasets/finndot/finnai-slm-data |
-| **FinnDot app** (auto-downloads the on-device model) | Play Store | [com.anomapro.finndot](https://play.google.com/store/apps/details?id=com.anomapro.finndot) |
+| **FinnDot app** (auto-downloads the on-device model) | Play Store | [com.anomapro.finndot.prd](https://play.google.com/store/apps/details?id=com.anomapro.finndot.prd&hl=en_IN) |
 
 ### Clone the code
 
@@ -71,7 +71,7 @@ File: ~974 MB, LiteRT-LM INT4, KV cache 1280, thinking disabled. The FinnDot app
 | **Model** (merged bf16 + LoRA adapter) | https://huggingface.co/finndot/finnai-slm-v2 |
 | **On-device model** (INT4 `.litertlm` for Android) | [Download (974 MB)](https://dgdzwh27431n8.cloudfront.net/models/qwen3-1.7b-finndot/latest/qwen3_1.7b_finndot_nothink_q4_ekv1280.litertlm) |
 | **Dataset** (synthetic train/val/test) | https://huggingface.co/datasets/finndot/finnai-slm-data |
-| **Android App** | [Download on Play Store](https://play.google.com/store/apps/details?id=com.anomapro.finndot) |
+| **Android App** | [Download on Play Store](https://play.google.com/store/apps/details?id=com.anomapro.finndot.prd&hl=en_IN) |
 
 ## Results (v2 held-out eval)
 
@@ -110,7 +110,7 @@ docs/
 
 ## For App Users
 
-The Android app on the [Play Store](https://play.google.com/store/apps/details?id=com.anomapro.finndot) downloads the on-device model automatically on first launch. No manual steps needed.
+The Android app on the [Play Store](https://play.google.com/store/apps/details?id=com.anomapro.finndot.prd&hl=en_IN) downloads the on-device model automatically on first launch. No manual steps needed.
 
 **Model performance (v2):** 97.97% SMS R-EM · 35+ Indian banks · EN / HI / Hinglish / TA / TE / MR / BN · 100% on-device
 
@@ -235,4 +235,4 @@ Apache 2.0 — same as Qwen3-1.7B. Keep Qwen attribution.
 
 - Issues / PRs welcome on this repo
 - Model discussion: [HF model page](https://huggingface.co/finndot/finnai-slm-v2)
-- Android App: [Play Store](https://play.google.com/store/apps/details?id=com.anomapro.finndot)
+- Android App: [Play Store](https://play.google.com/store/apps/details?id=com.anomapro.finndot.prd&hl=en_IN)
