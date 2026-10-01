@@ -2,6 +2,8 @@
 
 Training, data generation, eval, and export code for the on-device Indian bank SMS model.
 
+**v3 ship path:** `Qwen/Qwen3-4B` SFT + DPO (`bash scripts/train_v3.sh`). Optional `RUN_TEACHER=1` trains `Qwen/Qwen3-8B` first. 1.7B remains a lite/distill SKU only — see [`docs/V3_PLAN.md`](../docs/V3_PLAN.md).
+
 ## Access
 
 | Artifact | Link |

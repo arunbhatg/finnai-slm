@@ -158,10 +158,10 @@ def gates(ft: dict, base: dict, chat_ft: dict, chat_base: dict, *, version: str 
     g2 = amt_diff >= -0.01
     g3 = g_diff >= -0.05
     g4 = sms_ft["aggregate"]["json_valid"] >= 0.95
-    # v3: absolute chat groundedness floor (Ask Finn UX)
+    # v3: absolute chat groundedness floor (Ask Finn UX) — raised for 4B ship bar
     g3b = True
     if version == "v3":
-        g3b = chat_ft["grounded"] >= 0.85
+        g3b = chat_ft["grounded"] >= 0.90
     # Gate 5 is on-device; recorded separately.
     ship_flags = [g1, g2, g3, g4, g3b]
     return {
@@ -274,7 +274,7 @@ def main() -> None:
         "note": (
             "dummy backend verifies the harness. SHIP from dummy is not a product decision. "
             "HF backend compares candidate vs qwen3_base; gate5 on-device is separate. "
-            "v3 adds gate3b: chat groundedness absolute ≥ 85%."
+            "v3 adds gate3b: chat groundedness absolute ≥ 90% (4B ship bar)."
         ),
     }
     if product:

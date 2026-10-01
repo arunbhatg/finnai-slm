@@ -1,139 +1,112 @@
-# FinnAI SLM v3 — India usefulness plan
+# FinnAI SLM v3 — real model upgrade (not template cosmetics)
 
-**Status:** implementation in progress (data + eval + train config landed; GPU train/export pending)  
-**Ship target:** stay on `Qwen/Qwen3-1.7B` + QLoRA → LiteRT INT4 (same on-device envelope as v2)  
-**Not in scope for ship:** larger base model (4B+) — optional offline ablation only
+**Status:** redesign — **great model is required**, GPU budget is available  
+**Product still on-device + privacy-first** — but we accept a larger phone download for quality
 
-## How to build v3 data (this repo)
+## Honest critique of the previous v3 sketch
 
-```bash
-cd ml
-bash scripts/build_v3_data.sh
-# optional Bedrock Indic expansion:
-# bash scripts/build_v3_data.sh --with-nova
+Adding BBPS/EMI templates and more Hinglish coach rows is **useful hygiene**, not a capability jump.
+
+v2 on **Qwen3-1.7B** already sits near the ceiling on *synthetic* SMS R-EM (~98%). The hard product failures are:
+
+1. **Ask Finn invents / paraphrases ₹** (groundedness 68%) — needs more *capacity + preference training*, not only more SFT clones  
+2. **Indic + messy long-tail SMS** — 1.7B has thin priors; more templates help a bit, a stronger multilingual base helps more  
+3. **Synthetic–reality gap** — same grammar family forever → fake 98% with weak transfer  
+
+So v3 = **better base + harder training recipe + stricter eval**. Data expansion supports that; it is not the product.
+
+## Decision: ship a stronger base
+
+| Role | Model | Why |
+| --- | --- | --- |
+| **Ship student (primary)** | [`Qwen/Qwen3-4B`](https://huggingface.co/Qwen/Qwen3-4B) | Best open ~4B multilingual + structured-output prior; LiteRT INT4 path exists (~2–2.5 GB). Real headroom for coach + Indic vs 1.7B |
+| **Teacher (GPU-heavy)** | [`Qwen/Qwen3-8B`](https://huggingface.co/Qwen/Qwen3-8B) | Same family → clean distill / preference labels without GPT/Claude license risk |
+| **Lite SKU (optional later)** | Distill 4B → **Qwen3-1.7B** | Low-RAM India phones keep a smaller file *after* v3 quality exists |
+
+**Not primary:** Gemma-4 E2B (~2.5 GB+, different license), Llama 3.2 (weaker Indic + license), Sarvam (Indic-strong but no first-class LiteRT path).
+
+**Phone cost we accept:** ~2–2.5× download vs v2’s ~974 MB. Mid-range TTFT will be slower; gate 5 becomes “usable on Snapdragon 7-class”, not “same as 1.7B”.
+
+## What “really better” means (gates)
+
+Compare **FinnAI-v3-4B** vs **FinnAI-v2-1.7B** (not only vs untuned base).
+
+| Metric | v2 today | v3 ship bar |
+| --- | ---: | ---: |
+| Chat groundedness (frozen 50) | 68% | ≥ **90%** |
+| SMS R-EM (full synthetic mix) | 97.97% | ≥ **97.5%** (non-regress) |
+| Indic SMS R-EM (held-out slice) | thin / unreported | ≥ **96%** |
+| India-flows R-EM (BBPS/EMI/…) | n/a | ≥ **95%** |
+| False-parse | 0.54% | ≤ **1%** |
+| Hard coach set (refuse invented ₹ / missing month) | weak | ≥ **85%** correct refusal |
+| On-device | pending | INT4 loads; TTFT documented; no OOM on 8 GB devices |
+
+If 4B loses to v2 on SMS R-EM by >1 pp after full recipe → **fail ship**, iterate data/DPO — do not call template-only SFT “v3 done”.
+
+## Training recipe (spend GPU here)
+
+```text
+Phase A  Data factory     28k+ mix (flows + Indic + hard coach) + optional Nova
+Phase B  Teacher SFT      Qwen3-8B QLoRA on same data          [1× A100 40/80 or 2× A10G]
+Phase C  Student SFT      Qwen3-4B QLoRA on same data          [1× A10G/A100]
+Phase D  Preference       DPO/ORPO on groundedness prefs
+                          chosen = ledger-faithful; rejected = invented ₹ / markdown junk
+Phase E  Distill (opt)    8B regenerates coach + hard SMS rationales → 4B SFT mix
+Phase F  Export           merge → LiteRT INT4 → on-device bench
+Phase G  Lite (opt)       distill 4B → 1.7B for low-end SKU
 ```
 
-Outputs land in `ml/data/out_v3/` plus eval fixtures:
-- `ml/eval/fixtures/india_flows_eval.jsonl`
-- `ml/eval/fixtures/indic_sms_eval.jsonl`
+Rough GPU (order-of-magnitude, Ohio/Mumbai):
 
-Train (1× A10G / T4):
+| Phase | Hardware | Wall time | ~USD |
+| --- | --- | --- | --- |
+| 8B teacher SFT | 1× A100 80GB | 8–14 h | 40–80 |
+| 4B student SFT | 1× A100 or g5.2xlarge | 6–10 h | 25–50 |
+| DPO 4B | same | 3–6 h | 15–30 |
+| Distill regen + SFT | A100 | 6–12 h | 30–60 |
+| **Total comfortable budget** | | | **~$150–250** |
 
-```bash
-cd ml
-export SM_CHANNEL_TRAIN=$PWD/data/out_v3
-export SM_MODEL_DIR=$PWD/train/output_v3
-python train/sft_qlora.py --config train/train_config.yaml
-python train/merge_lora.py --adapter train/output_v3/adapter --out train/output_v3/merged
-```
+Worth it if groundedness clears 90% and Indic slices clear 96%. Not worth it if we only re-SFT 1.7B on more templates.
 
-Eval with v3 gates (absolute chat groundedness ≥ 85%):
+## Data (supports the model — still not the model)
 
-```bash
-python -m eval.run_eval \
-  --backend hf \
-  --version v3 \
-  --sms data/out_v3/test_sms.jsonl \
-  --chat eval/fixtures/chat_eval.jsonl \
-  --sms-slice eval/fixtures/indic_sms_eval.jsonl \
-  --sms-slice eval/fixtures/india_flows_eval.jsonl \
-  --model-id train/output_v3/merged \
-  --baseline-id Qwen/Qwen3-1.7B \
-  --tag v3-run
-```
+Keep the generators already in-repo, but raise the bar on **hardness**:
 
-## Code landed
+- Coach: missing-month, wrong-merchant, empty ledger, “quote a number not in prompt” traps  
+- SMS: format drift, OCR-ish spacing, bilingual lines, failed vs success near-misses  
+- Prefer **verified** Indic paraphrases (Nova or 8B teacher) over endless EN clones  
+- Still **no raw user SMS** in public train set; optional private redacted eval later
+
+## Repo layout (v3 train)
 
 | Path | Role |
 | --- | --- |
-| `ml/data/generate_india_flows.py` | BBPS, EMI, wallets, MF SIP, refunds, CC payment/statement |
-| `ml/data/generate_indic_sms_manual.py` | HI/Hinglish/TA/TE/MR/BN templates without Bedrock |
-| `ml/data/generate_finance_chat.py` | More ledgers, Hinglish asks, hard grounding refusals |
-| `ml/data/build_splits.py` | `--version v3`, 28k train, 55/30/15 mix |
-| `ml/eval/run_eval.py` | `--version v3` gate3b + `--sms-slice` |
-| `ml/train/train_config.yaml` | `FinnAI-SLM-v3`, larger val R-EM sample |
+| [`ml/train/train_config_v3_4b.yaml`](../ml/train/train_config_v3_4b.yaml) | **Ship** Qwen3-4B QLoRA |
+| [`ml/train/train_config_teacher_8b.yaml`](../ml/train/train_config_teacher_8b.yaml) | Teacher Qwen3-8B QLoRA |
+| [`ml/train/train_dpo.py`](../ml/train/train_dpo.py) | DPO on preference jsonl |
+| [`ml/data/generate_dpo_prefs.py`](../ml/data/generate_dpo_prefs.py) | Chosen/rejected coach pairs |
+| [`ml/scripts/train_v3.sh`](../ml/scripts/train_v3.sh) | Orchestrates SFT → DPO |
+| [`ml/scripts/build_v3_data.sh`](../ml/scripts/build_v3_data.sh) | Dataset build |
 
-## Why not a bigger model first?
-
-v2 already hits **~98% SMS R-EM** and **~99.5% amount EM** on held-out synthetic transactions. Untuned Qwen3 already reads rupee amounts well; fine-tuning mainly taught full-field JSON + `{}` refusal. The product gaps that hurt Indian users are elsewhere:
-
-| Gap (v2) | Why it matters in India | Leverage |
-| --- | --- | --- |
-| Chat groundedness **68%** | Ask Finn can paraphrase / invent ₹ figures | More ledger-grounded coach data (EN + Hinglish + HI) |
-| Indic SMS ~**300** Nova rows | TA/TE/MR/BN bank SMS still thin vs EN/HI | Scale verified Indic paraphrases + manual templates where Nova fails (PNB/SBI) |
-| Template taxonomy English-heavy | Real inboxes have BBPS, EMI, wallets, MF, refunds, CC statements | New synthetic generators |
-| Gate 5 pending | Mid-range phones must stay ≤1.3× prior TTFT/RSS | Finish on-device bench before calling v3 “shipped” |
-
-**Verdict:** better **data + eval gates**, not a bigger base. A 4B model would grow the ~974 MB download and hurt mid-range Android TTFT with little SMS gain.
-
-## v3 goals (measurable)
-
-Keep v2 SMS quality; raise India UX.
-
-| Gate | v2 | v3 target |
-| --- | ---: | ---: |
-| SMS strict R-EM (full mix) | 97.97% | ≥ **97.5%** (non-regress) |
-| False-parse (empty rows) | 0.54% | ≤ **1.0%** |
-| Chat groundedness (frozen set) | 68% | ≥ **85%** |
-| Indic SMS R-EM (new held-out slice, ≥200 rows TA/TE/MR/BN/HI) | n/a | ≥ **95%** |
-| New-flow SMS R-EM (BBPS/EMI/wallet/MF/refund slice) | n/a | ≥ **94%** |
-| On-device gate 5 (TTFT/RSS ≤1.3×) | pending | **pass** |
-| INT4 vs bf16 amount EM drop | not gated | ≤ **1 pp** |
-
-## Data recipe
-
-Grow train from **16k → ~28k** (same mix philosophy, richer India content).
-
-| Bucket | v2 | v3 | Notes |
-| --- | ---: | ---: | --- |
-| SMS (EN templates + parser gold) | ~9.6k | ~12k | Keep; add BBPS, EMI mandate, UPI refund, wallet (PhonePe/Amazon Pay/Paytm), MF SIP, CC statement/payment |
-| Indic SMS (verified Nova + manual) | ~300 | **~2.5k** | Cap per `(bank, lang)`; reject if amount/merchant/last-4 drift |
-| Coach (ledger-grounded) | ~4k | **~9k** | Hard negatives: empty ledger, wrong-month asks, Hinglish “kitna kharch”; every assistant ₹ must be in `must_ground` |
-| General finance India | ~2.4k | ~3.5k | SIP, Section 80C, UPI limits, NPCI rails — short answers only |
-| Negatives → `{}` | ~300 | ~800 | e-mandate OTP, KYC, promo, failed UPI, balance enquiry |
-
-**Still no real user SMS** in training (privacy / Apache 2.0). Gold stays deterministic; Nova (or local paraphraser) only rewrites *surface* text.
-
-### Mix ratios (train)
-
-- 55% SMS (incl. Indic + new flows)
-- 30% coach (up from 25% — groundedness is the main UX gap)
-- 15% general
-
-Split unit remains `(bank, template_id)` so paraphrases never leak across train/val/test.
-
-## Code changes (this repo)
-
-1. **`ml/data/generate_india_flows.py`** — BBPS / EMI / wallet / MF SIP / refund / CC templates with Indian merchants and ₹ Indian-comma amounts.
-2. **`ml/data/generate_nova_indic.py`** — raise defaults (`--sms 2000 --chat 800`); stronger verify; manual seed list for PNB/SBI.
-3. **`ml/data/generate_finance_chat.py`** — more Hinglish/HI asks; adversarial groundedness (refuse numbers not in ledger).
-4. **`ml/data/build_splits.py`** — `--train-size 28000`, new mix weights.
-5. **`ml/eval/`** — add `fixtures/indic_sms_eval.jsonl`, `fixtures/india_flows_eval.jsonl`; raise chat groundedness ship gate to ≥85% vs untuned base; report Indic / new-flow slices in `eval-v3-report.md`.
-6. **`ml/train/train_config.yaml`** — keep LoRA r=16; bump `val_rem_max_items` if needed; same export (`dynamic_int4_block32`, `nothink`).
-7. **Publish** — `finndot/finnai-slm-v3` on HF + CloudFront `.litertlm` when gates pass.
-
-## Optional ablation (offline only)
-
-Run one QLoRA on **Qwen3-4B** with the same v3 data; compare coach groundedness and on-device TTFT on a Pixel/Snapdragon mid-range. **Ship stays 1.7B** unless 4B wins groundedness by ≥8 pp *and* gate 5 still passes (unlikely on mid-range).
-
-## What we will not do in v3
-
-- Distill from GPT/Claude (license / OSS story)
-- Train on raw user SMS
-- Replace `parser-core` regex for known banks (hybrid stays: regex first, SLM long-tail + coach)
-- Enable Qwen “thinking” on-device (latency)
+Legacy 1.7B `train_config.yaml` remains for lite distill experiments only.
 
 ## Execution order
 
-1. Generators + expanded Nova Indic (data)
-2. Build 28k splits; train QLoRA on 1× A10G
-3. Eval gates + Indic/new-flow slices; iterate data if groundedness &lt; 85%
-4. LiteRT export + gate 5 on-device bench
-5. HF + CloudFront publish; point app `MODEL_URL` at v3
+1. Build v3 data (`build_v3_data.sh`)  
+2. Train **8B teacher** SFT (quality oracle)  
+3. Train **4B student** SFT on same data  
+4. Build DPO prefs (rule-based rejects + teacher-ranked chosen) → DPO 4B  
+5. Eval vs **v2 1.7B** + untuned 4B; require groundedness ≥90%  
+6. LiteRT export + device bench on India mid-range  
+7. Publish `finndot/finnai-slm-v3` (4B) + CloudFront `.litertlm`  
+8. Optional: distill to 1.7B lite  
+
+## Non-goals
+
+- Calling “more BBPS strings on 1.7B” a v3 model release  
+- Distilling from GPT/Claude into the OSS weights  
+- Shipping 8B on-device as default  
 
 ## Success for Indian users
 
-- Ask Finn answers stay on the user’s ₹ numbers (Hinglish OK)
-- Hindi/Tamil/Telugu/Marathi/Bengali bank SMS parse without inventing spends
-- Common India rails beyond plain UPI debit (BBPS, EMI, wallets, SIP) work in the long-tail path
-- Phone download size and speed stay in the v2 ballpark
+Ask Finn stops inventing rupees in Hinglish. Indic SMS and BBPS/EMI/wallet long-tail work because the **4B model actually understands them**, not because we memorized three new templates. Low-end phones can get a distilled 1.7B later — quality leads, size follows.

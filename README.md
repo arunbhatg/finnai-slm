@@ -169,17 +169,19 @@ model = PeftModel.from_pretrained(base, "finndot/finnai-slm-v2", subfolder="adap
 
 ### 2. Rebuild the dataset locally
 
-**v3 (recommended):**
+**v3 (recommended — real model upgrade):**
 
 ```bash
 cd ml
 bash scripts/build_v3_data.sh
-# optional: bash scripts/build_v3_data.sh --with-nova   # needs AWS Bedrock
+# On a GPU box (A10G/A100):
+bash scripts/train_v3.sh                 # Qwen3-4B SFT + DPO
+# RUN_TEACHER=1 bash scripts/train_v3.sh # also SFT Qwen3-8B teacher first
 ```
 
-See [`docs/V3_PLAN.md`](docs/V3_PLAN.md) for mix ratios, new India-flow templates, and ship gates.
+Ship target is **`Qwen/Qwen3-4B`** (~2–2.5 GB on-device INT4), not another 1.7B template pass. See [`docs/V3_PLAN.md`](docs/V3_PLAN.md).
 
-**v2-compatible:**
+**v2-compatible / lite distill only:**
 
 ### 2b. Legacy v2 rebuild
 
@@ -218,7 +220,7 @@ python -m eval.run_eval \
 | Doc | Purpose |
 | --- | --- |
 | [`docs/FINETUNE_GUIDE.md`](docs/FINETUNE_GUIDE.md) | **Start here** — problem, when to use this approach, data recipe, training, adapting to other domains |
-| [`docs/V3_PLAN.md`](docs/V3_PLAN.md) | **v3 plan** — India-focused data + eval gates (keep Qwen3-1.7B) |
+| [`docs/V3_PLAN.md`](docs/V3_PLAN.md) | **v3 plan** — ship **Qwen3-4B** + teacher 8B + DPO (real upgrade; GPU-heavy) |
 | [`docs/MODEL_CARD.md`](docs/MODEL_CARD.md) | Model card |
 | [`docs/DATASET_CARD.md`](docs/DATASET_CARD.md) | Dataset card |
 | [`docs/llm-eval-protocol.md`](docs/llm-eval-protocol.md) | Pre-registered ship gates |

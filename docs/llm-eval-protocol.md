@@ -144,7 +144,7 @@ Ship `qwen3_ft_int4` (update `Constants.ModelDownload.MODEL_URL` to the CloudFro
 
 **v3 additional gate (Ask Finn):**
 
-3b. **Chat groundedness absolute:** `qwen3_ft_int4` ≥ **85%** on the frozen chat eval set (pass `eval.run_eval --version v3`).
+3b. **Chat groundedness absolute:** `finnai_v3` ≥ **90%** on the frozen chat eval set (pass `eval.run_eval --version v3`). Primary ship student is **Qwen3-4B**, not 1.7B.
 
 Also report (not hard-gated until κ established) Indic and India-flows SMS slices via `--sms-slice`.
 

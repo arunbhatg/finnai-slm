@@ -1,6 +1,8 @@
 base_model: Qwen/Qwen3-1.7B
-model_name: FinnAI-SLM-v3
+model_name: FinnAI-SLM-v3-lite-1.7B
 seed: 42
+# NOTE: v3 *ship* target is Qwen3-4B — see train_config_v3_4b.yaml
+# This file is for optional post-hoc distill / low-RAM lite SKU only.
 lora:
   r: 16
   alpha: 32
