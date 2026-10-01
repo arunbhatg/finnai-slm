@@ -1,0 +1,26 @@
+{
+  "train": {
+    "n": 16000,
+    "by_task": {
+      "sms": 9600,
+      "chat": 4000,
+      "general": 2400
+    }
+  },
+  "test": {
+    "n": 1592,
+    "by_task": {
+      "sms": 1282,
+      "chat": 160,
+      "general": 150
+    }
+  },
+  "val": {
+    "n": 1561,
+    "by_task": {
+      "sms": 1254,
+      "chat": 307,
+      "general": 0
+    }
+  }
+}

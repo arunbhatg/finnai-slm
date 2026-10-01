@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.env.*
+
+# Data / model artifacts (rebuild or download from HF)
+ml/data/out/
+ml/train/output/
+ml/train/out/
+ml/release/hf_staging/
+*.safetensors
+*.bin
+*.pt
+*.litertlm
+*.gguf
+
+# Android / FinnDot app secrets & sources (must never land in this OSS repo)
+app/
+**/google-services.json
+**/google-services*.json
+**/GoogleService-Info.plist
+**/keystore.properties
+**/*.jks
+**/*.keystore
+local.properties
+**/local.properties
+*.pem
+*.p12
+credentials.json
+**/service-account*.json
+.firebaserc
+firebase.json
+
+# IDE / OS
+.idea/
+.vscode/
+.kotlin/
+.DS_Store
+Thumbs.db
+
+# Logs / caches
+*.log
+.pytest_cache/
+cookies.txt

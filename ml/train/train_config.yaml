@@ -1,0 +1,36 @@
+base_model: Qwen/Qwen3-1.7B
+model_name: FinnAI-SLM
+seed: 42
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+    - gate_proj
+    - up_proj
+    - down_proj
+train:
+  epochs: 3
+  lr: 2.0e-4
+  batch_size: 2
+  grad_accum: 8
+  max_seq_len: 1536
+  packing: false
+  warmup_ratio: 0.03
+  logging_steps: 20
+  save_strategy: epoch
+  val_rem_max_items: 256
+quant:
+  load_in_4bit: true
+  bnb_4bit_compute_dtype: bfloat16
+export:
+  quantize: dynamic_int4_block32
+  kv_cache_max_len: 1280
+  prefill_seq_len: [8, 64, 128, 256, 512, 1024]
+  nothink: true
+region: ap-south-1
+instance: ml.g5.2xlarge

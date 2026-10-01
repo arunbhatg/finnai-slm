@@ -1,0 +1,100 @@
+{
+  "tag": "v20260920-harness",
+  "backend": "dummy",
+  "candidate": {
+    "model_id": "dummy-gold",
+    "sms": {
+      "n": 1351,
+      "r_em": 1.0,
+      "r_em_pct": 100.0,
+      "r_em_ci": [
+        100.0,
+        100.0
+      ],
+      "amount_em": 1.0,
+      "amount_em_pct": 100.0,
+      "amount_em_ci": [
+        100.0,
+        100.0
+      ],
+      "json_valid": 1.0,
+      "json_valid_pct": 100.0,
+      "json_valid_ci": [
+        100.0,
+        100.0
+      ],
+      "field_micro_f1": 1.0,
+      "merchant_exact_pct": 100.0,
+      "merchant_f1": 1.0,
+      "false_parse_pct": 0.0
+    },
+    "chat": {
+      "n": 50,
+      "grounded": 1.0,
+      "grounded_pct": 100.0,
+      "grounded_ci": [
+        100.0,
+        100.0
+      ],
+      "no_markdown_pct": 100.0,
+      "length_band_pct": 100.0
+    }
+  },
+  "baseline": {
+    "model_id": "dummy-empty",
+    "sms": {
+      "n": 1351,
+      "r_em": 0.17616580310880828,
+      "r_em_pct": 17.62,
+      "r_em_ci": [
+        15.62,
+        19.69
+      ],
+      "amount_em": 0.17616580310880828,
+      "amount_em_pct": 17.62,
+      "amount_em_ci": [
+        15.62,
+        19.69
+      ],
+      "json_valid": 1.0,
+      "json_valid_pct": 100.0,
+      "json_valid_ci": [
+        100.0,
+        100.0
+      ],
+      "field_micro_f1": 0.30940044411547,
+      "merchant_exact_pct": 18.36,
+      "merchant_f1": 0.1835677276091784,
+      "false_parse_pct": 0.0
+    },
+    "chat": {
+      "n": 50,
+      "grounded": 1.0,
+      "grounded_pct": 100.0,
+      "grounded_ci": [
+        100.0,
+        100.0
+      ],
+      "no_markdown_pct": 100.0,
+      "length_band_pct": 0.0
+    }
+  },
+  "gates": {
+    "r_em_diff_pp": 82.38,
+    "r_em_diff_ci_pp": [
+      80.31,
+      84.38
+    ],
+    "amount_em_diff_pp": 82.38,
+    "grounded_diff_pp": 0.0,
+    "mcnemar_p": 0.0,
+    "gate1_r_em_lift": true,
+    "gate2_amount_noninf": true,
+    "gate3_chat_noninf": true,
+    "gate4_json_valid": true,
+    "gate5_ondevice": null,
+    "ship": true
+  },
+  "protocol": "docs/llm-eval-protocol.md",
+  "note": "dummy backend verifies the harness. SHIP from dummy is not a product decision. Run --backend hf with qwen3_ft_int4 vs qwen3_base after training."
+}
