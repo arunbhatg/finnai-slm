@@ -12,10 +12,18 @@ from pathlib import Path
 from data.extract_parser_gold import extract_repo
 from data.generate_finance_chat import frozen_eval_set, generate as gen_chat
 from data.generate_general_instruct import generate as gen_general
+from data.generate_india_flows import frozen_eval_slice as india_flows_eval
+from data.generate_india_flows import generate as gen_india_flows
+from data.generate_indic_sms_manual import frozen_eval_slice as indic_eval
+from data.generate_indic_sms_manual import generate as gen_indic_manual
 from data.generate_synthetic_sms import generate as gen_sms
 
 SEED = 42
-TRAIN_MIX = {"sms": 0.60, "chat": 0.25, "general": 0.15}
+
+# v2 mix (legacy)
+TRAIN_MIX_V2 = {"sms": 0.60, "chat": 0.25, "general": 0.15}
+# v3: more coach for groundedness; SMS still majority
+TRAIN_MIX_V3 = {"sms": 0.55, "chat": 0.30, "general": 0.15}
 
 
 def _group_hash(split_key: str) -> str:
@@ -43,13 +51,13 @@ def assign_splits(rows: list[dict]) -> dict[str, str]:
     return mapping
 
 
-def mix_train(rows: list[dict], n: int) -> list[dict]:
+def mix_train(rows: list[dict], n: int, mix: dict[str, float]) -> list[dict]:
     by = defaultdict(list)
     for r in rows:
         by[r["task"]].append(r)
     rng = random.Random(SEED)
     out: list[dict] = []
-    for task, frac in TRAIN_MIX.items():
+    for task, frac in mix.items():
         pool = by[task]
         rng.shuffle(pool)
         k = int(n * frac)
@@ -81,7 +89,13 @@ def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--repo-root", type=Path, default=Path(".."))
     p.add_argument("--out", type=Path, default=Path("data/out"))
-    p.add_argument("--train-size", type=int, default=12000)
+    p.add_argument("--train-size", type=int, default=None, help="Default 12000 (v2) or 28000 (v3)")
+    p.add_argument(
+        "--version",
+        choices=("v2", "v3"),
+        default="v3",
+        help="v3 enables India flows + manual Indic SMS and 55/30/15 mix",
+    )
     p.add_argument(
         "--extra",
         type=Path,
@@ -89,11 +103,26 @@ def main() -> None:
         default=[],
         help="Verified jsonl from Nova data factory (or other extra slices)",
     )
+    p.add_argument("--chat-n", type=int, default=None)
+    p.add_argument("--general-n", type=int, default=None)
+    p.add_argument("--india-flows-n", type=int, default=4000)
+    p.add_argument("--indic-manual-n", type=int, default=2500)
     args = p.parse_args()
 
+    if args.train_size is None:
+        args.train_size = 28000 if args.version == "v3" else 12000
+    if args.chat_n is None:
+        args.chat_n = 9000 if args.version == "v3" else 3000
+    if args.general_n is None:
+        args.general_n = 3500 if args.version == "v3" else 1800
+    mix = TRAIN_MIX_V3 if args.version == "v3" else TRAIN_MIX_V2
+
     sms = extract_repo(args.repo_root) + gen_sms()
-    chat = gen_chat()
-    general = gen_general()
+    if args.version == "v3":
+        sms = sms + gen_india_flows(max_pos=args.india_flows_n, max_neg=max(800, args.india_flows_n // 5))
+        sms = sms + gen_indic_manual(max_rows=args.indic_manual_n)
+    chat = gen_chat(n=args.chat_n)
+    general = gen_general(n=args.general_n)
     extra: list[dict] = []
     for path in args.extra:
         with path.open(encoding="utf-8") as f:
@@ -108,8 +137,8 @@ def main() -> None:
         r["split"] = split
         buckets[split].append(r)
 
-    buckets["train"] = mix_train(buckets["train"], args.train_size)
-    # Keep SMS-heavy val/test for the primary metric
+    buckets["train"] = mix_train(buckets["train"], args.train_size, mix)
+
     def sms_first(rows: list[dict]) -> list[dict]:
         sms_rows = [r for r in rows if r["task"] == "sms"]
         other = [r for r in rows if r["task"] != "sms"]
@@ -127,6 +156,11 @@ def main() -> None:
     write_jsonl(out / "chat_eval.jsonl", frozen_eval_set())
     fixtures = Path(__file__).resolve().parents[1] / "eval" / "fixtures"
     write_jsonl(fixtures / "chat_eval.jsonl", frozen_eval_set())
+    if args.version == "v3":
+        write_jsonl(fixtures / "india_flows_eval.jsonl", india_flows_eval(200))
+        write_jsonl(fixtures / "indic_sms_eval.jsonl", indic_eval(200))
+        write_jsonl(out / "india_flows_eval.jsonl", india_flows_eval(200))
+        write_jsonl(out / "indic_sms_eval.jsonl", indic_eval(200))
 
     sums = out / "SHA256SUMS"
     lines = []
@@ -140,14 +174,19 @@ def main() -> None:
     sums.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     counts = {
-        split: {
-            "n": len(rows),
-            "by_task": {
-                t: sum(1 for r in rows if r["task"] == t)
-                for t in ("sms", "chat", "general")
-            },
-        }
-        for split, rows in buckets.items()
+        "version": args.version,
+        "train_mix": mix,
+        "train_size_target": args.train_size,
+        **{
+            split: {
+                "n": len(rows),
+                "by_task": {
+                    t: sum(1 for r in rows if r["task"] == t)
+                    for t in ("sms", "chat", "general")
+                },
+            }
+            for split, rows in buckets.items()
+        },
     }
     (out / "counts.json").write_text(json.dumps(counts, indent=2) + "\n", encoding="utf-8")
     manifest = Path(__file__).resolve().parent / "manifest"

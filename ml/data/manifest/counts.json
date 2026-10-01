@@ -1,26 +1,33 @@
 {
-  "train": {
-    "n": 16000,
+  "version": "v3",
+  "train_mix": {
+    "sms": 0.55,
+    "chat": 0.3,
+    "general": 0.15
+  },
+  "train_size_target": 28000,
+  "val": {
+    "n": 2887,
     "by_task": {
-      "sms": 9600,
-      "chat": 4000,
-      "general": 2400
+      "sms": 1780,
+      "chat": 1107,
+      "general": 0
+    }
+  },
+  "train": {
+    "n": 28000,
+    "by_task": {
+      "sms": 15400,
+      "chat": 8400,
+      "general": 4200
     }
   },
   "test": {
-    "n": 1592,
+    "n": 2961,
     "by_task": {
-      "sms": 1282,
-      "chat": 160,
-      "general": 150
-    }
-  },
-  "val": {
-    "n": 1561,
-    "by_task": {
-      "sms": 1254,
-      "chat": 307,
-      "general": 0
+      "sms": 1901,
+      "chat": 692,
+      "general": 368
     }
   }
 }

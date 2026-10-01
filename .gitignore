@@ -9,7 +9,9 @@ venv/
 
 # Data / model artifacts (rebuild or download from HF)
 ml/data/out/
+ml/data/out_*/
 ml/train/output/
+ml/train/output_*/
 ml/train/out/
 ml/release/hf_staging/
 *.safetensors

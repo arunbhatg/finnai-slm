@@ -169,6 +169,20 @@ model = PeftModel.from_pretrained(base, "finndot/finnai-slm-v2", subfolder="adap
 
 ### 2. Rebuild the dataset locally
 
+**v3 (recommended):**
+
+```bash
+cd ml
+bash scripts/build_v3_data.sh
+# optional: bash scripts/build_v3_data.sh --with-nova   # needs AWS Bedrock
+```
+
+See [`docs/V3_PLAN.md`](docs/V3_PLAN.md) for mix ratios, new India-flow templates, and ship gates.
+
+**v2-compatible:**
+
+### 2b. Legacy v2 rebuild
+
 ```bash
 cd ml
 python -m pip install -r requirements.txt

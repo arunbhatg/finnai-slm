@@ -1,5 +1,5 @@
 base_model: Qwen/Qwen3-1.7B
-model_name: FinnAI-SLM
+model_name: FinnAI-SLM-v3
 seed: 42
 lora:
   r: 16
@@ -23,7 +23,7 @@ train:
   warmup_ratio: 0.03
   logging_steps: 20
   save_strategy: epoch
-  val_rem_max_items: 256
+  val_rem_max_items: 384
 quant:
   load_in_4bit: true
   bnb_4bit_compute_dtype: bfloat16
@@ -34,3 +34,8 @@ export:
   nothink: true
 region: ap-south-1
 instance: ml.g5.2xlarge
+# v3 data: build with
+#   python -m data.build_splits --version v3 --out data/out_v3 --train-size 28000
+# optional Nova: python -m data.generate_nova_indic --sms 2000 --chat 800 --out data/out/nova_indic.jsonl
+#   then pass --extra data/out/nova_indic.jsonl to build_splits
+

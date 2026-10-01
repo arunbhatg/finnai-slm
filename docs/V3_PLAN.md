@@ -1,8 +1,57 @@
 # FinnAI SLM v3 — India usefulness plan
 
-**Status:** proposed  
+**Status:** implementation in progress (data + eval + train config landed; GPU train/export pending)  
 **Ship target:** stay on `Qwen/Qwen3-1.7B` + QLoRA → LiteRT INT4 (same on-device envelope as v2)  
 **Not in scope for ship:** larger base model (4B+) — optional offline ablation only
+
+## How to build v3 data (this repo)
+
+```bash
+cd ml
+bash scripts/build_v3_data.sh
+# optional Bedrock Indic expansion:
+# bash scripts/build_v3_data.sh --with-nova
+```
+
+Outputs land in `ml/data/out_v3/` plus eval fixtures:
+- `ml/eval/fixtures/india_flows_eval.jsonl`
+- `ml/eval/fixtures/indic_sms_eval.jsonl`
+
+Train (1× A10G / T4):
+
+```bash
+cd ml
+export SM_CHANNEL_TRAIN=$PWD/data/out_v3
+export SM_MODEL_DIR=$PWD/train/output_v3
+python train/sft_qlora.py --config train/train_config.yaml
+python train/merge_lora.py --adapter train/output_v3/adapter --out train/output_v3/merged
+```
+
+Eval with v3 gates (absolute chat groundedness ≥ 85%):
+
+```bash
+python -m eval.run_eval \
+  --backend hf \
+  --version v3 \
+  --sms data/out_v3/test_sms.jsonl \
+  --chat eval/fixtures/chat_eval.jsonl \
+  --sms-slice eval/fixtures/indic_sms_eval.jsonl \
+  --sms-slice eval/fixtures/india_flows_eval.jsonl \
+  --model-id train/output_v3/merged \
+  --baseline-id Qwen/Qwen3-1.7B \
+  --tag v3-run
+```
+
+## Code landed
+
+| Path | Role |
+| --- | --- |
+| `ml/data/generate_india_flows.py` | BBPS, EMI, wallets, MF SIP, refunds, CC payment/statement |
+| `ml/data/generate_indic_sms_manual.py` | HI/Hinglish/TA/TE/MR/BN templates without Bedrock |
+| `ml/data/generate_finance_chat.py` | More ledgers, Hinglish asks, hard grounding refusals |
+| `ml/data/build_splits.py` | `--version v3`, 28k train, 55/30/15 mix |
+| `ml/eval/run_eval.py` | `--version v3` gate3b + `--sms-slice` |
+| `ml/train/train_config.yaml` | `FinnAI-SLM-v3`, larger val R-EM sample |
 
 ## Why not a bigger model first?
 

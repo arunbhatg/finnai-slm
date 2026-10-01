@@ -142,6 +142,12 @@ Ship `qwen3_ft_int4` (update `Constants.ModelDownload.MODEL_URL` to the CloudFro
 4. **JSON validity:** `qwen3_ft_int4` ≥ **95%** on SMS test items.
 5. **On-device cost:** mid-range TTFT and peak RSS ≤ **1.3×** the prior on-device baseline (or documented proxy).
 
+**v3 additional gate (Ask Finn):**
+
+3b. **Chat groundedness absolute:** `qwen3_ft_int4` ≥ **85%** on the frozen chat eval set (pass `eval.run_eval --version v3`).
+
+Also report (not hard-gated until κ established) Indic and India-flows SMS slices via `--sms-slice`.
+
 If any gate fails: do not change `MODEL_URL` to the fine-tune. Iterate data/LoRA/conversion and re-run the full suite. Partial “looks better on val” is not a ship.
 
 Primary comparisons are FinnAI vs untuned Qwen3-1.7B base.

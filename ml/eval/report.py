@@ -45,10 +45,20 @@ def write_report(path: Path, summary: dict) -> None:
         f"- Gate 1 R-EM lift: {g['gate1_r_em_lift']} (diff {g['r_em_diff_pp']} pp, CI {g['r_em_diff_ci_pp']})",
         f"- Gate 2 amount non-inf: {g['gate2_amount_noninf']} (diff {g['amount_em_diff_pp']} pp)",
         f"- Gate 3 chat non-inf: {g['gate3_chat_noninf']} (diff {g['grounded_diff_pp']} pp)",
+        f"- Gate 3b chat abs ≥85% (v3): {g.get('gate3b_chat_abs_v3', 'n/a')} (abs {g.get('grounded_abs_pct', 'n/a')}%)",
         f"- Gate 4 JSON ≥95%: {g['gate4_json_valid']}",
         f"- Gate 5 on-device: {g['gate5_ondevice']}",
         f"- McNemar p (R-EM): {g['mcnemar_p']}",
     ]
+    if summary.get("version"):
+        lines.insert(3, f"- Eval version: `{summary['version']}`")
+    if summary.get("slices"):
+        lines.extend(["", "## SMS slices", ""])
+        for name, agg in summary["slices"].items():
+            lines.append(
+                f"- `{name}`: n={agg['n']} R-EM {agg['r_em_pct']}% amount EM {agg['amount_em_pct']}% "
+                f"false-parse {agg['false_parse_pct']}%"
+            )
     if "rq3_ge_qwen25" in g:
         lines.append(f"- RQ3 ≥ Qwen2.5 R-EM: {g['rq3_ge_qwen25']}")
     if summary.get("product_baseline"):

@@ -67,10 +67,45 @@ PAIRS = [
         "EMI kya hai, do vakya.",
         "EMI wo monthly installment hai jisse loan chhutta hai. Isme principal aur interest milte hain, time par payment se loan date par khatam hota hai.",
     ),
+    (
+        "general/bbps",
+        "What is BBPS in one short paragraph?",
+        "BBPS is Bharat Bill Payment System: a NPCI network to pay utility and other bills across banks and apps with a receipt reference. It does not mean the biller was paid twice if you see both BBPS and bank SMS for one payment.",
+    ),
+    (
+        "general/upi_limit",
+        "What is a common UPI per-day limit people hit?",
+        "Many banks set UPI limits around one lakh rupees per day for P2M or P2P, but your bank app shows the exact cap. Limits differ for new accounts and overnight hours.",
+    ),
+    (
+        "general/80c",
+        "Name three Section 80C style options in one line.",
+        "ELSS mutual funds, PPF, and life insurance premiums are common 80C routes; check current tax rules before investing.",
+    ),
+    (
+        "general/npci",
+        "What does NPCI do in one sentence?",
+        "NPCI operates retail payment systems in India including UPI, IMPS, and BBPS so banks and apps can move money on shared rails.",
+    ),
+    (
+        "general/wallet_vs_bank",
+        "Wallet balance vs bank balance — one clear difference.",
+        "Bank SMS reflects your account; wallet SMS reflects prepaid wallet balance, which is separate unless you just loaded it from the bank.",
+    ),
+    (
+        "general/sip_vs_emi",
+        "SIP vs EMI in two sentences.",
+        "SIP invests a fixed amount on a schedule, usually into mutual funds. EMI repays a loan; it is an outflow you owe, not an investment contribution.",
+    ),
+    (
+        "general/hinglish_budget",
+        "Simple budget tip in Hinglish, two lines.",
+        "Pehle rent, EMI, aur bills nikaalo. Jo bache usme 20 percent saving ya emergency fund ki taraf rakhne ki koshish karo.",
+    ),
 ]
 
 
-def generate(n: int = 1800) -> list[dict]:
+def generate(n: int = 3500) -> list[dict]:
     rows: list[dict] = []
     i = 0
     while len(rows) < n:

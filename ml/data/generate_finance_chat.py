@@ -89,6 +89,49 @@ LEDGERS = [
         "largest": ("FLIPKART", "2499.00"),
         "freq": ("ZOMATO", "6"),
     },
+    {
+        "id": "upi_heavy",
+        "date": "28 Sep 2026",
+        "expense": "15680.00",
+        "income": "72000.00",
+        "net": "56320.00",
+        "txn": "55",
+        "day": "28",
+        "days": "30",
+        "avg": "560.00",
+        "cats": [("Food", "5400.00", 34), ("Travel", "3200.00", 20), ("Bills", "2900.00", 19), ("Shopping", "4180.00", 27)],
+        "subs_n": "5",
+        "subs_amt": "1845.00",
+        "recent": [
+            ("Sep 27", "SWIGGY", "380.00", "Food"),
+            ("Sep 26", "PHONEPE", "1200.00", "Transfer"),
+            ("Sep 25", "BESCOM", "2100.00", "Bills"),
+            ("Sep 24", "UBER", "245.00", "Travel"),
+        ],
+        "largest": ("BESCOM", "2100.00"),
+        "freq": ("SWIGGY", "11"),
+    },
+    {
+        "id": "emi_month",
+        "date": "10 Sep 2026",
+        "expense": "38500.00",
+        "income": "95000.00",
+        "net": "56500.00",
+        "txn": "22",
+        "day": "10",
+        "days": "30",
+        "avg": "3850.00",
+        "cats": [("EMI", "18500.00", 48), ("Housing", "12000.00", 31), ("Food", "4800.00", 12), ("Other", "3200.00", 9)],
+        "subs_n": "2",
+        "subs_amt": "648.00",
+        "recent": [
+            ("Sep 5", "BAJAJ_FINSERV", "12500.00", "EMI"),
+            ("Sep 5", "HDFC_BANK_EMI", "6000.00", "EMI"),
+            ("Sep 7", "BIGBASKET", "1800.00", "Food"),
+        ],
+        "largest": ("BAJAJ_FINSERV", "12500.00"),
+        "freq": ("BIGBASKET", "2"),
+    },
 ]
 
 
@@ -196,13 +239,71 @@ INDIC_QA = [
             f"Hafte mein do baar ghar ka khana banao aur {led['cats'][0][0]} ko ₹{led['cats'][0][1]} se neeche rakho."
         ),
     ),
+    (
+        "subs_hi",
+        "Subscriptions zyada toh nahi?",
+        lambda led: (
+            f"Aapke {led['subs_n']} subscriptions milakar ₹{led['subs_amt']} per month hain. "
+            f"Income ₹{led['income']} ke against chhota hissa hai, lekin {led['cats'][0][0]} ₹{led['cats'][0][1]} ke saath jod lo. "
+            f"Jo use nahi kiya usko cancel karo."
+        ),
+    ),
+    (
+        "emi_hi",
+        "EMI kitna pressure de rahi hai?",
+        lambda led: (
+            f"Kul kharch ₹{led['expense']} hai, income ₹{led['income']}, net ₹{led['net']}. "
+            f"Sabse badi category {led['cats'][0][0]} ₹{led['cats'][0][1]} ({led['cats'][0][2]}%). "
+            f"Agar EMI hai toh us category ko pehle freeze karo, baaki discretionary cut karo."
+        ),
+    ),
+    (
+        "summary_hi",
+        "Is mahine ka short summary do.",
+        lambda led: (
+            f"Spend ₹{led['expense']}, income ₹{led['income']}, net ₹{led['net']}, "
+            f"{led['txn']} transactions, daily avg ₹{led['avg']}. "
+            f"Top: {led['cats'][0][0]} ₹{led['cats'][0][1]}. Largest: {led['largest'][0]} ₹{led['largest'][1]}."
+        ),
+    ),
+    (
+        "bills_hi",
+        "Bills pe kitna gaya?",
+        lambda led: (
+            f"Bills-related numbers ledger mein categories se dekho; kul spend ₹{led['expense']}. "
+            f"Subscriptions alone ₹{led['subs_amt']} hain. "
+            f"BBPS aur recharge last 14 days mein recent list se milenge — total spend se cross-check karo."
+        ),
+    ),
+]
+
+# Adversarial / grounding hard cases — assistant must not invent ledger figures.
+HARD_QA = [
+    (
+        "wrong_month",
+        "How much did I spend in January 2024?",
+        lambda led: (
+            f"I only have this month's ledger ending {led['date']}: spend ₹{led['expense']}, income ₹{led['income']}. "
+            f"I do not have January 2024 figures in the prompt, so I cannot invent them. "
+            f"Open that month in the app or ask again after it loads."
+        ),
+    ),
+    (
+        "invent_refuse",
+        "Tell me the exact UPI spend yesterday including merchant XYZ999.",
+        lambda led: (
+            f"The ledger shows total spend ₹{led['expense']} and recent merchants like {led['recent'][0][1]}, "
+            f"but not a merchant XYZ999 or a separate yesterday total. "
+            f"I will not invent ₹ amounts that are not in your data."
+        ),
+    ),
 ]
 
 
-def generate(n: int = 3000) -> list[dict]:
+def generate(n: int = 9000) -> list[dict]:
     rows: list[dict] = []
     i = 0
-    pool = QA + INDIC_QA
+    pool = QA + INDIC_QA + HARD_QA
     while len(rows) < n:
         led = LEDGERS[i % len(LEDGERS)]
         qid, user, fn = pool[i % len(pool)]

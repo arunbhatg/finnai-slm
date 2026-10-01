@@ -192,8 +192,8 @@ def expand_chat(n: int) -> list[dict]:
 def main() -> None:
     p = argparse.ArgumentParser(description="Nova Pro data factory → verified Indic jsonl")
     p.add_argument("--out", type=Path, default=Path("data/out/nova_indic.jsonl"))
-    p.add_argument("--sms", type=int, default=400)
-    p.add_argument("--chat", type=int, default=400)
+    p.add_argument("--sms", type=int, default=2000)
+    p.add_argument("--chat", type=int, default=800)
     args = p.parse_args()
     rows = expand_sms(args.sms) + expand_chat(args.chat)
     args.out.parent.mkdir(parents=True, exist_ok=True)

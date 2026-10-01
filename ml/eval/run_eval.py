@@ -144,7 +144,7 @@ def eval_chat(rows: list[dict], preds: list[str]) -> dict:
     }
 
 
-def gates(ft: dict, base: dict, chat_ft: dict, chat_base: dict) -> dict:
+def gates(ft: dict, base: dict, chat_ft: dict, chat_base: dict, *, version: str = "v2") -> dict:
     sms_ft, sms_base = ft["sms"], base["sms"]
     r_diff = sms_ft["aggregate"]["r_em"] - sms_base["aggregate"]["r_em"]
     r_ci = bootstrap_diff_ci(sms_ft["r_em_vec"], sms_base["r_em_vec"])
@@ -158,19 +158,27 @@ def gates(ft: dict, base: dict, chat_ft: dict, chat_base: dict) -> dict:
     g2 = amt_diff >= -0.01
     g3 = g_diff >= -0.05
     g4 = sms_ft["aggregate"]["json_valid"] >= 0.95
+    # v3: absolute chat groundedness floor (Ask Finn UX)
+    g3b = True
+    if version == "v3":
+        g3b = chat_ft["grounded"] >= 0.85
     # Gate 5 is on-device; recorded separately.
+    ship_flags = [g1, g2, g3, g4, g3b]
     return {
+        "version": version,
         "r_em_diff_pp": pct(r_diff),
         "r_em_diff_ci_pp": [pct(r_ci[0]), pct(r_ci[1])],
         "amount_em_diff_pp": pct(amt_diff),
         "grounded_diff_pp": pct(g_diff),
+        "grounded_abs_pct": chat_ft["grounded_pct"],
         "mcnemar_p": p_mc,
         "gate1_r_em_lift": g1,
         "gate2_amount_noninf": g2,
         "gate3_chat_noninf": g3,
+        "gate3b_chat_abs_v3": g3b,
         "gate4_json_valid": g4,
         "gate5_ondevice": None,
-        "ship": all([g1, g2, g3, g4]),
+        "ship": all(ship_flags),
     }
 
 
@@ -185,6 +193,14 @@ def main() -> None:
     p.add_argument("--out", type=Path, default=Path("eval/reports"))
     p.add_argument("--tag", default="harness")
     p.add_argument("--job-id", default="")
+    p.add_argument("--version", choices=("v2", "v3"), default="v2")
+    p.add_argument(
+        "--sms-slice",
+        type=Path,
+        action="append",
+        default=[],
+        help="Optional extra SMS jsonl slices (e.g. indic_sms_eval, india_flows_eval) reported separately",
+    )
     args = p.parse_args()
 
     sms_rows = load_jsonl(args.sms)
@@ -227,9 +243,19 @@ def main() -> None:
                 }
             )
 
+    slices = {}
+    for slice_path in args.sms_slice:
+        srows = load_jsonl(slice_path)
+        if args.backend == "dummy":
+            spreds = [predict_dummy(r) for r in srows]
+        else:
+            spreds = predict_hf(srows, args.model_id, 256)
+        slices[slice_path.name] = eval_sms(srows, spreds)["aggregate"]
+
     summary = {
         "tag": args.tag,
         "backend": args.backend,
+        "version": args.version,
         "job_id": args.job_id,
         "candidate": {
             "model_id": ft["model_id"],
@@ -241,12 +267,14 @@ def main() -> None:
             "sms": base["sms"]["aggregate"],
             "chat": {k: v for k, v in base["chat"].items() if not k.endswith("_vec") and k != "preds"},
         },
-        "gates": gates(ft, base, ft["chat"], base["chat"]),
+        "slices": slices,
+        "gates": gates(ft, base, ft["chat"], base["chat"], version=args.version),
         "protocol": "docs/llm-eval-protocol.md",
         "sms_fail_cases": fail_ids[:20],
         "note": (
             "dummy backend verifies the harness. SHIP from dummy is not a product decision. "
-            "HF backend compares candidate vs qwen3_base; gate5 on-device is separate."
+            "HF backend compares candidate vs qwen3_base; gate5 on-device is separate. "
+            "v3 adds gate3b: chat groundedness absolute ≥ 85%."
         ),
     }
     if product:
