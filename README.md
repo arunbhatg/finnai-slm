@@ -4,10 +4,70 @@
 
 FinnAI SLM is a QLoRA fine-tune of [`Qwen/Qwen3-1.7B`](https://huggingface.co/Qwen/Qwen3-1.7B) for on-device expense tracking. It runs fully on-device (privacy-first) and is released under **Apache 2.0**.
 
+## How to access the code and models
+
+| What you want | Where | How |
+| --- | --- | --- |
+| **Training / eval / data code** (this repo) | GitHub | `git clone https://github.com/arunbhatg/finnai-slm.git` |
+| **Weights for Python / research** (bf16 + LoRA) | Hugging Face | https://huggingface.co/finndot/finnai-slm-v2 |
+| **On-device Android model** (INT4 `.litertlm`, ~974 MB) | CloudFront | [Direct download](https://dgdzwh27431n8.cloudfront.net/models/qwen3-1.7b-finndot/latest/qwen3_1.7b_finndot_nothink_q4_ekv1280.litertlm) |
+| **Train/val/test dataset** | Hugging Face | https://huggingface.co/datasets/finndot/finnai-slm-data |
+| **FinnDot app** (auto-downloads the on-device model) | Play Store | [com.anomapro.finndot](https://play.google.com/store/apps/details?id=com.anomapro.finndot) |
+
+### Clone the code
+
+```bash
+git clone https://github.com/arunbhatg/finnai-slm.git
+cd finnai-slm
+cd ml && python -m pip install -r requirements.txt
+```
+
+Start with [`docs/FINETUNE_GUIDE.md`](docs/FINETUNE_GUIDE.md) for the full fine-tune recipe.
+
+### Download the Hugging Face model (Python)
+
+```bash
+# Requires: pip install huggingface_hub
+huggingface-cli download finndot/finnai-slm-v2 --local-dir ./models/finnai-slm-v2
+```
+
+Or in Python:
+
+```python
+from huggingface_hub import snapshot_download
+snapshot_download("finndot/finnai-slm-v2", local_dir="./models/finnai-slm-v2")
+```
+
+Load and run inference (see [For Developers](#for-developers) below), or use the LoRA adapter only:
+
+```python
+from peft import PeftModel
+from transformers import AutoModelForCausalLM
+
+base = AutoModelForCausalLM.from_pretrained("Qwen/Qwen3-1.7B", trust_remote_code=True)
+model = PeftModel.from_pretrained(base, "finndot/finnai-slm-v2", subfolder="adapter")
+```
+
+### Download the dataset
+
+```bash
+huggingface-cli download finndot/finnai-slm-data --repo-type dataset --local-dir ./data/finnai-slm-data
+```
+
+### Download the on-device `.litertlm` (Android / LiteRT)
+
+```bash
+curl -L -O "https://dgdzwh27431n8.cloudfront.net/models/qwen3-1.7b-finndot/latest/qwen3_1.7b_finndot_nothink_q4_ekv1280.litertlm"
+# or: wget <same URL>
+```
+
+File: ~974 MB, LiteRT-LM INT4, KV cache 1280, thinking disabled. The FinnDot app also fetches this automatically on first launch.
+
 ## Artifacts (ready to use)
 
 | What | Link |
 | --- | --- |
+| **Code** (this repository) | https://github.com/arunbhatg/finnai-slm |
 | **Model** (merged bf16 + LoRA adapter) | https://huggingface.co/finndot/finnai-slm-v2 |
 | **On-device model** (INT4 `.litertlm` for Android) | [Download (974 MB)](https://dgdzwh27431n8.cloudfront.net/models/qwen3-1.7b-finndot/latest/qwen3_1.7b_finndot_nothink_q4_ekv1280.litertlm) |
 | **Dataset** (synthetic train/val/test) | https://huggingface.co/datasets/finndot/finnai-slm-data |
@@ -50,71 +110,11 @@ docs/
 
 ## For App Users
 
-The Android app (available on Play Store) automatically downloads this model on first launch. No manual steps needed!
+The Android app on the [Play Store](https://play.google.com/store/apps/details?id=com.anomapro.finndot) downloads the on-device model automatically on first launch. No manual steps needed.
 
-**App Download:** [Get it on Play Store](https://play.google.com/store/apps/details?id=com.anomapro.finndot)
+**Model performance (v2):** 97.97% SMS R-EM · 35+ Indian banks · EN / HI / Hinglish / TA / TE / MR / BN · 100% on-device
 
-**Model Performance:**
-- 97.97% accuracy on Indian bank SMS parsing
-- Supports 35+ Indian banks
-- Languages: EN, HI, Hinglish, TA, TE, MR, BN
-- 100% on-device (no cloud, no data upload)
-
-### Manual Model Download
-
-If you need the model file directly (974 MB):
-
-**Using curl:**
-```bash
-curl -L -O "https://dgdzwh27431n8.cloudfront.net/models/qwen3-1.7b-finndot/latest/qwen3_1.7b_finndot_nothink_q4_ekv1280.litertlm"
-```
-
-**Using wget:**
-```bash
-wget "https://dgdzwh27431n8.cloudfront.net/models/qwen3-1.7b-finndot/latest/qwen3_1.7b_finndot_nothink_q4_ekv1280.litertlm"
-```
-
-**Using Python:**
-```python
-import urllib.request
-
-url = "https://dgdzwh27431n8.cloudfront.net/models/qwen3-1.7b-finndot/latest/qwen3_1.7b_finndot_nothink_q4_ekv1280.litertlm"
-filename = "finnai_model.litertlm"
-
-print("Downloading model (974 MB)...")
-urllib.request.urlretrieve(url, filename)
-print(f"Downloaded to: {filename}")
-```
-
-**Using Python with progress bar:**
-```python
-import requests
-from tqdm import tqdm
-
-url = "https://dgdzwh27431n8.cloudfront.net/models/qwen3-1.7b-finndot/latest/qwen3_1.7b_finndot_nothink_q4_ekv1280.litertlm"
-filename = "finnai_model.litertlm"
-
-response = requests.get(url, stream=True)
-total_size = int(response.headers.get('content-length', 0))
-
-with open(filename, 'wb') as file, tqdm(
-    desc=filename,
-    total=total_size,
-    unit='iB',
-    unit_scale=True,
-    unit_divisor=1024,
-) as bar:
-    for data in response.iter_content(chunk_size=1024):
-        size = file.write(data)
-        bar.update(size)
-
-print(f"✓ Downloaded successfully: {filename}")
-```
-
-**File Details:**
-- Size: 973,979,088 bytes (974 MB)
-- Format: LiteRT-LM INT4 `.litertlm`
-- Compatible with: LiteRT inference engine (Android, Linux, macOS)
+For a standalone `.litertlm` file (curl / wget / Python), see [Download the on-device `.litertlm`](#download-the-on-device-litertlm-android--litert) above.
 
 ---
 
@@ -203,12 +203,12 @@ python -m eval.run_eval \
 
 | Doc | Purpose |
 | --- | --- |
-| [`docs/FINETUNE_GUIDE.md`](docs/FINETUNE_GUIDE.md) | **Start here** ΓÇö problem, when to use this approach, data recipe, training, adapting to other domains |
+| [`docs/FINETUNE_GUIDE.md`](docs/FINETUNE_GUIDE.md) | **Start here** — problem, when to use this approach, data recipe, training, adapting to other domains |
 | [`docs/MODEL_CARD.md`](docs/MODEL_CARD.md) | Model card |
 | [`docs/DATASET_CARD.md`](docs/DATASET_CARD.md) | Dataset card |
 | [`docs/llm-eval-protocol.md`](docs/llm-eval-protocol.md) | Pre-registered ship gates |
 | [`docs/finnai-slm-finetune.md`](docs/finnai-slm-finetune.md) | Lab notebook / ops |
-| [`docs/FinnAI_SLM_CXO_FineTuning_Brief.docx`](docs/FinnAI_SLM_CXO_FineTuning_Brief.docx) | **CXO briefing** ΓÇö flowcharts + plain English + full technical depth |
+| [`docs/FinnAI_SLM_CXO_FineTuning_Brief.docx`](docs/FinnAI_SLM_CXO_FineTuning_Brief.docx) | **CXO briefing** — flowcharts + plain English + full technical depth |
 
 ## Privacy
 
@@ -218,7 +218,7 @@ python -m eval.run_eval \
 
 ## License
 
-Apache 2.0 ΓÇö same as Qwen3-1.7B. Keep Qwen attribution.
+Apache 2.0 — same as Qwen3-1.7B. Keep Qwen attribution.
 
 ## Citation
 
