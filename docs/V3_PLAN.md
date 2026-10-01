@@ -1,19 +1,17 @@
-# FinnAI SLM v3 — real model upgrade (not template cosmetics)
+# FinnAI SLM v3 — real model upgrade + serious fine-tuning strategy
 
-**Status:** redesign — **great model is required**, GPU budget is available  
-**Product still on-device + privacy-first** — but we accept a larger phone download for quality
+**Status:** redesign — great model **and** great training recipe are both required  
+**Read first:** [`V3_FINETUNE_STRATEGY.md`](V3_FINETUNE_STRATEGY.md) (curriculum, DPO, checkpointing)  
+**Product still on-device + privacy-first** — accept ~2–2.5 GB INT4 for **Qwen3-4B**
 
-## Honest critique of the previous v3 sketch
+## One-line doctrine
 
-Adding BBPS/EMI templates and more Hinglish coach rows is **useful hygiene**, not a capability jump.
+Bigger base without staged fine-tuning is an expensive v2.  
+**Anchor JSON → blend → harden groundedness (on-policy DPO) → SMS replay → trust INT4.**
 
-v2 on **Qwen3-1.7B** already sits near the ceiling on *synthetic* SMS R-EM (~98%). The hard product failures are:
+## Honest critique
 
-1. **Ask Finn invents / paraphrases ₹** (groundedness 68%) — needs more *capacity + preference training*, not only more SFT clones  
-2. **Indic + messy long-tail SMS** — 1.7B has thin priors; more templates help a bit, a stronger multilingual base helps more  
-3. **Synthetic–reality gap** — same grammar family forever → fake 98% with weak transfer  
-
-So v3 = **better base + harder training recipe + stricter eval**. Data expansion supports that; it is not the product.
+Adding BBPS templates / flat 3-epoch SFT on 4B is **not** v3. v2 already saturates synthetic SMS R-EM; Ask Finn still invents ₹ because CE-on-clones never punishes the model’s own hallucinations.
 
 ## Decision: ship a stronger base
 

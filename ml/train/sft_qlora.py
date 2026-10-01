@@ -121,6 +121,14 @@ def main() -> None:
     p.add_argument("--train-file", type=Path, default=None)
     p.add_argument("--val-file", type=Path, default=None)
     p.add_argument("--output-dir", type=Path, default=None)
+    p.add_argument(
+        "--adapter",
+        type=Path,
+        default=None,
+        help="Continue LoRA from a previous stage adapter (curriculum)",
+    )
+    p.add_argument("--lr", type=float, default=None, help="Override config LR (stage 3/5 use lower LR)")
+    p.add_argument("--epochs", type=float, default=None, help="Override config epochs")
     args = p.parse_args()
 
     cfg = yaml.safe_load(args.config.read_text(encoding="utf-8"))
@@ -128,11 +136,12 @@ def main() -> None:
     out_dir = _env_path("SM_MODEL_DIR", str(args.output_dir or Path("train/out")))
     train_file = args.train_file or train_dir / "train.jsonl"
     val_file = args.val_file or train_dir / "val.jsonl"
+    out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     from datasets import load_dataset
     import torch
-    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+    from peft import LoraConfig, PeftModel, get_peft_model, prepare_model_for_kbit_training
     from transformers import (
         AutoModelForCausalLM,
         AutoTokenizer,
@@ -170,15 +179,19 @@ def main() -> None:
             trust_remote_code=True,
         )
 
-    lora = LoraConfig(
-        r=cfg["lora"]["r"],
-        lora_alpha=cfg["lora"]["alpha"],
-        lora_dropout=cfg["lora"]["dropout"],
-        target_modules=cfg["lora"]["target_modules"],
-        task_type="CAUSAL_LM",
-        bias="none",
-    )
-    model = get_peft_model(model, lora)
+    if args.adapter and Path(args.adapter).exists():
+        model = PeftModel.from_pretrained(model, str(args.adapter), is_trainable=True)
+        print(f"[{MODEL_NAME}] continued from adapter {args.adapter}", flush=True)
+    else:
+        lora = LoraConfig(
+            r=cfg["lora"]["r"],
+            lora_alpha=cfg["lora"]["alpha"],
+            lora_dropout=cfg["lora"]["dropout"],
+            target_modules=cfg["lora"]["target_modules"],
+            task_type="CAUSAL_LM",
+            bias="none",
+        )
+        model = get_peft_model(model, lora)
     model.print_trainable_parameters()
 
     ds = load_dataset("json", data_files={"train": str(train_file), "val": str(val_file)})
@@ -195,13 +208,15 @@ def main() -> None:
     ds = ds.map(to_text, remove_columns=[c for c in ds["train"].column_names if c not in keep])
 
     t = cfg["train"]
+    epochs = float(args.epochs) if args.epochs is not None else t["epochs"]
+    lr = float(args.lr) if args.lr is not None else float(t["lr"])
     common_args = dict(
         output_dir=str(out_dir / "checkpoints"),
-        num_train_epochs=t["epochs"],
+        num_train_epochs=epochs,
         per_device_train_batch_size=t["batch_size"],
         per_device_eval_batch_size=t["batch_size"],
         gradient_accumulation_steps=t["grad_accum"],
-        learning_rate=float(t["lr"]),
+        learning_rate=lr,
         warmup_ratio=t["warmup_ratio"],
         logging_steps=t["logging_steps"],
         save_strategy=t["save_strategy"],
@@ -212,7 +227,7 @@ def main() -> None:
         report_to=[],
         seed=cfg["seed"],
         gradient_checkpointing=True,
-        save_total_limit=3,
+        save_total_limit=5,
         load_best_model_at_end=False,
         run_name=cfg.get("model_name", MODEL_NAME),
     )
@@ -274,8 +289,11 @@ def main() -> None:
         "model_name": cfg.get("model_name", MODEL_NAME),
         "base_model": model_id,
         "method": "QLoRA-SFT" if use_4bit else "LoRA-SFT",
+        "continued_from": str(args.adapter) if args.adapter else None,
         "config": cfg,
         "train_file": str(train_file),
+        "lr": lr,
+        "epochs": epochs,
         "val_sms_rem": rem_log,
     }
     (out_dir / "train_meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
